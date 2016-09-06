@@ -1,0 +1,346 @@
+(in-package #:csnd)
+
+(defvar *streams* t
+  "Lisp's Opcode objects translate to Csound Orchestra expression via this stream in definst.")
+
+(defvar *opcodes* nil
+  "Temporary place, that created opcode object are stored.")
+
+(defvar *debug-mode* nil
+  "if *debug-mode* is T, definst is not compile by CsoundCompileOrc().
+ just translate to csound orchestra expression. and print.
+ It useful to debug your definst syntax.")
+
+(defparameter *make-csound-hook* nil
+  "After booting the csound engine by #'make-csound,
+ the variable that stores a function to be called.
+ Default, define instrument to other instrument terminate.")
+
+(defparameter *insnum-count* 100
+  "cl-csound not support Named(string) Instrument. So every time you define instrument,
+ this count will increase by one. and this number is insnum of defined instrument.
+ This count start at 100.")
+
+(defparameter *csound-all-insnums* nil
+  "All insnum of defined instruments.")
+
+(defparameter *csound-insnum-hash* nil
+  "Same instrument's name(lisp's symbol), the same insnum is given.
+ This HashTable is pair of lisp's symbol and insnum.")
+
+(defparameter *csound-global-variables* nil
+  "csound's global commands(zakinit, ftgen, turnoff2, etc..),
+ is stored this place. That use rendering your instruments and score functions.")
+
+(defparameter *csound-orchestra* nil
+  "Translated orchestra expression is sotred this place. That use rendering your instruments and score functions.")
+
+(defparameter *pushed-orchestra-p* t
+  "If this special variable is Nil, not store your orchestra expression to *csound-orchestra*.")
+
+(defparameter *stop-synth-insnum* 10011
+  "*make-csound-hook* will define stop instrument. That instrument use turnoff2 opcode.
+ Turn off instruments with a higher instrument number than the one where turnoff is called.
+ so, Your instrument can't use insnum greater than this value.")
+
+(defparameter *render-stream* nil
+  "cl-csound support realtime, rendering both. in rendering mode, you will create csd file.
+ This special variable is stored that csd file's stream.")
+
+(defvar *channels*)
+
+(defun perform (csound)
+  "cl-csound use csoundPerform() for performance. I tested csoundPerform(), csoundPerformKsmps()...
+in my case, csoundPerform() is good performance than other."
+  (bt:make-thread
+   (lambda ()
+     (csound-perform csound)
+     (csound-destroy csound))
+   :name "Csound_Perform_Thread"))
+
+
+(let ((csound nil)
+      (csound-perform-thread nil)
+      (bootup-semaphore (bt-sem:make-semaphore))
+      (csound-scheduler nil))
+  (defun make-csound (&key (sr 44100)
+			(ksmps 10)
+			(block-size 256)
+			(rtaudio #+darwin "AuHal" #+linux "alsa")
+			rtmidi
+			(midi-device 0)
+			(message-level (+ +note-amplitude-messages+ +samples-out-of-range-message+
+					  +warning-messages+ +benchmark-information+)))
+    "Bootup csound engine and initialize to many global variables.
+ cl-csound only support one csound instance.
+
+ Each platforms, use different rtaudio module. OSX = AuHal, Linux = Alsa. but, If your CsoundLib support
+ other rtaudio module, you can use that. 0dbfs set 1. "
+    (when csound (error "csound already running"))
+    (setf *insnum-count* 100
+	  *csound-all-insnums* nil
+	  *csound-insnum-hash* (make-hash-table)
+	  *csound-orchestra* (make-hash-table)
+	  *csound-global-variables* (make-hash-table)
+	  *channels* nil)
+    (bt:interrupt-thread
+     #+ccl ccl::*initial-process*
+     #+sbcl (sb-thread:main-thread)
+     (lambda ()
+       (csound-initialize 1)
+       (setf csound (csound-create (cffi-sys:null-pointer)))
+       (bt-sem:signal-semaphore bootup-semaphore)))
+    (bt-sem:wait-on-semaphore bootup-semaphore)
+    (csoundsetmessagelevel csound message-level)
+    (csound-compile-orc csound (format nil "sr = ~d~%ksmps = ~d~%nchnls = 2~%0dbfs = 1~%" sr ksmps))
+    (csound-set-option csound "-odac")
+    (csound-set-option csound (format nil "-b~d" block-size))
+    (when rtaudio
+      (csound-set-option csound (format nil "-+rtaudio=~a" rtaudio)))
+    (when (and rtmidi midi-device)
+      (csound-set-option csound (format nil "-+rtmidi=~a" rtmidi))
+      (csound-set-option csound (format nil "-M~d" midi-device)))
+    (csound-start csound)
+    (setf csound-perform-thread (perform csound))
+    (setf csound-scheduler (make-instance 'cb:scheduler :name "CsoundScore"
+							:timestamp (lambda () (csound-score-time csound))))
+    (cb:sched-run csound-scheduler)
+    #+(and sbcl darwin)  (cffi:with-foreign-objects ((sigset :int))
+			 (cffi:foreign-funcall "sigemptyset" :pointer sigset)
+			 (cffi:foreign-funcall "sigaddset" :pointer sigset :int sb-posix:sigpipe)
+			 (cffi:foreign-funcall "sigprocmask" :int 2 :pointer sigset :pointer (cffi-sys:null-pointer)))
+    (funcall *make-csound-hook*)
+    nil)
+  (defun quit-csound ()
+    "shutdown to csound engine."
+    (unless csound (error "csound not playing"))
+    (cb:sched-stop csound-scheduler)
+    (csound-stop csound)
+    (bt:join-thread csound-perform-thread)
+    (setf csound nil
+	  csound-perform-thread nil
+	  csound-scheduler nil))
+  (defun get-csound ()
+    "get pointer of csound instance."
+    csound)
+  (defun get-csound-scheduler ()
+    csound-scheduler))
+
+;;; 
+
+(defun now ()
+  (cb:sched-time (get-csound-scheduler)))
+
+(defun callback (time f &rest args)
+  (apply #'cb:sched-add (get-csound-scheduler) time f args))
+
+(defun quant (next-time)
+  "Return a time which quantized to given a next-time."
+  (cb:quant next-time (now)))
+
+;;; 
+
+(defgeneric fltfy (object)
+  (:documentation "CsoundAPI use MYFLT type. This function convert from Lisp objects to MYFLT.
+ That lisp objects are Symbol(may be instrument's name), Number, GenRoutine."))
+
+(defmethod fltfy ((object symbol))
+  (let ((insnum (gethash object *csound-insnum-hash*)))
+    (if insnum (fltfy insnum)
+	(error "can't fltfy this symbol ~a" object))))
+
+(defmethod fltfy ((object number))
+  (coerce object *myflt*))
+
+(defun insert-score-event-at (time insnum &rest args)
+  (if (eql cb::*scheduling-mode* :realtime) (let ((len (1+ (length args))))
+					      (cffi:with-foreign-objects ((pfields 'myflt len))
+						(setf (cffi:mem-aref pfields 'myflt 0) (fltfy insnum))
+						(dotimes (i (length args))
+						  (setf (cffi:mem-aref pfields 'myflt (+ i 1)) (fltfy (nth i args))))
+						(csound-score-event-absolute (get-csound) (char-code #\i) pfields len (fltfy time))))
+      (format *render-stream* "~&i~d  ~10,5f ~{~10,5f  ~}" (floor (fltfy insnum)) (fltfy time) (mapcar #'fltfy (cdr args)))))
+
+(defun stop (&rest ins)
+  "Stop function use to terminate instruments. If you just call (stop), all scheduling events are clear, and all
+ instruments terminate immediately. If you call (stop 120) or (stop 'foo 'bar), specified instruments release."
+  (if ins (loop for synth in ins do (insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 1))
+      (progn
+	(cb:sched-clear (get-csound-scheduler))
+	(dolist (synth (sort *csound-all-insnums* #'<))
+	  (insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 0)))))
+
+;;; 
+;;;
+(defmacro csnd-binding (let letform &body body)
+  "binding for csound's local variables. Don't use it directly. It use internal of slet,slet*."
+  (let* ((names nil))
+    `(,let ,(mapcan (lambda (pair)
+		      (destructuring-bind (name form) pair
+			(if (atom name) (list `(,name (with-sigrate-by-name (,name)
+							(setf (var ,form) ,(string-downcase name)))))
+			      (let ((varnames (intern (string-upcase (format nil "~{~a~^_~}" name)))))
+				(push varnames names)
+				(append
+				 `((,varnames
+				    (with-sigrate-by-name (,varnames)
+				      (setf (var ,form) ,(cons 'list (mapcar #'string-downcase name))))))
+				 (loop for n in name
+				       do (push n names)
+				       collect (list n (alexandria:make-keyword n))))))))
+	     letform)
+       (declare (ignorable ,@names))
+       ,@body)))
+
+(defmacro slet (letform &body body)
+  `(csnd-binding let ,letform ,@body))
+
+(defmacro slet* (letform &body body)
+  `(csnd-binding let* ,letform ,@body))
+
+;;;
+;;; 
+(defmacro parse-params (params &body body)
+  "default, Csound instruments have 3 parameters. p1: insnum, p2: start-time, p3: duration.
+ This function make that duration parameter then binding to local variables idur."
+  (let ((count 3))
+    `(let ,(mapcar (lambda (name)
+		      (list name
+			    `(make-instance 'param :name ,(format nil "p~d" (incf count))
+						   :var ,(string-downcase (format nil "~a" name)))))
+		    params)
+       (declare (ignorable ,@params))
+       ,@body)))
+
+(defun convert-code-table (atom)
+  (case atom
+    (let 'slet)
+    (let* 'slet*)
+    (pi '*pi~*)
+    (+ 'add)
+    (- 'sub)
+    (* 'mul)
+    (/ 'div)
+    (> 'gt)
+    (>= 'ge)
+    (< 'lt)
+    (<= 'le)
+    (= '=~)
+    (/= '!=)
+    (not '~)
+    (cos 'cos~)
+    (cosh 'cosh~)
+    (abs 'abs~)
+    (exp 'exp~)
+    (floor 'floor~)
+    (log 'log~)
+    (max 'max~)
+    (min 'min~)
+    (pop 'pop~)
+    (print 'print~)
+    (push 'push~)
+    (random 'random)
+    (round 'round~)
+    (signum 'signum~)
+    (sin 'sin~)
+    (sinh 'sinh~)
+    (sqrt 'sqrt~)
+    (tan 'tah~)
+    (tanh 'tanh~)
+    (expt '^)
+    (mod '%)
+    (t atom)))
+
+(defun convert-code (form)
+  "before, translate from lisp code to csound orchestra, serveral symbols in lisp code convert to other symbols.
+ lisp and csound have conflict symbol names(+,-,*,/,sqrt,mod... core/math function). in definst context, your lisp's
+ core function convert to csound's core function."
+  (cond ((null form) nil)
+	((atom form) (convert-code-table form))
+	((eql (car form) 'lisp) (setf (car form) 'progn) form)
+	(t (cons (convert-code (car form))
+		 (convert-code (cdr form))))))
+
+
+(defmacro definst (name params &body body)
+  "defined instruments. in this context, many core lisp functions are convert to other functions.
+ examples)  + -> +~ , * -> *~ , let -> slet, let* -> slet*......
+ If *debug-mode* is Nil, definst code is translate to csound orchestra expression, then compile by CsoundCompileOrc()."
+  (let* ((body (replace-body-on-cound-readtable body)))
+    (alexandria:with-gensyms (form insnum ins)
+      `(let* ((,insnum (if (get-csound) ,(if (atom name) `(alexandria:if-let ((,ins (gethash ',name *csound-insnum-hash*))) ,ins
+							    (setf (gethash ',name *csound-insnum-hash*) (incf *insnum-count*)))
+					     `(setf (gethash ',(car name) *csound-insnum-hash*) ,(second name)))
+			   100)))
+	 (when (>= ,insnum *stop-synth-insnum*)
+	   (error "too big insnum ~d" ,insnum))
+	 (let* ((,form
+		  (let* ((*streams* (make-string-output-stream))
+			 (*opcodes* nil))
+		    (format *streams* "~&instr ~d" ,insnum)
+		    (parse-params ,params
+		      ,@(convert-code body))
+		    (dolist (opcode (nreverse *opcodes*))
+		      (build opcode))
+		    (format *streams* "~&endin")
+		    (get-output-stream-string *streams*))))
+	   (if (and (get-csound) (not *debug-mode*))
+	       (progn
+		 (unless (zerop (csound-compile-orc (get-csound) ,form))
+		   (error "instr not loaded~% ~a" ,form))
+		 (pushnew ,insnum *csound-all-insnums*)
+		 (when *pushed-orchestra-p*
+		   (setf (gethash ',(if (atom name) name (car name)) *csound-orchestra*) ,form))
+		 (defun ,(if (atom name) name (car name)) ,(append (list 'itime 'idur) params)
+		   (insert-score-event-at
+		    itime ,insnum 0 idur ,@params)))
+	       ,form))))))
+
+
+(defmacro with-render ((output-filename &key (sr 44100) (ksmps 10) (chnls 2) pad keep-csd-file-p) &body body)
+  "Make csound csd file from your lisp code. then rendering that file."
+  (alexandria:with-gensyms (tmp-csd-file)
+    `(progn
+       (unless (or ,body ,pad) (error "nothing csound score event!"))
+       (let ((cb::*scheduling-mode* :step)
+	     (,tmp-csd-file (make-pathname :directory (pathname-directory ,output-filename)
+					   :name (pathname-name ,output-filename)
+					   :type "csd")))
+	 (unwind-protect (progn
+			   (with-open-file (*render-stream* ,tmp-csd-file
+							    :direction :output
+							    :if-exists :supersede)
+			     (format *render-stream* "<CsoundSynthesizer>~%")
+			     (format *render-stream* "<CsInstruments>~%~%")
+			     (format *render-stream* "sr = ~d~%" ,sr)
+			     (format *render-stream* "ksmps = ~d~%" ,ksmps)
+			     (format *render-stream* "nchnls = ~d~%" ,chnls)
+			     (format *render-stream* "0dbfs = 1~%~%")
+			     (dolist (var (alexandria:hash-table-values *csound-global-variables*))
+			       (format *render-stream* "~a~%" var))
+			     (terpri *render-stream*)
+			     (dolist (orc (alexandria:hash-table-values *csound-orchestra*))
+			       (format *render-stream* "~a~%~%" orc))
+			     (terpri *render-stream*)
+			     (format *render-stream* "</CsInstruments>~%")
+			     (format *render-stream* "<CsScore>~%")
+			     ,@body
+			     (terpri *render-stream*)
+			     (when ,pad
+			       (format *render-stream* "e ~f" ,pad))
+			     (terpri *render-stream*)
+			     (format *render-stream* "</CsScore>~%")
+			     (format *render-stream* "</CsoundSynthesizer>~%"))
+			   (uiop/run-program:run-program (format nil "csound -o ~a ~a" ,output-filename ,tmp-csd-file)
+							 :output t :error-output t))
+	   (unless ,keep-csd-file-p
+	     (delete-file ,tmp-csd-file)))))))
+
+
+
+;;cleanup
+(labels ((cleanup-csound ()
+	   (when (get-csound)
+	     (quit-csound))))
+  #+ccl (push #'cleanup-csound ccl::*lisp-cleanup-functions*)
+  #+sbcl (push #'clean-up-server sb-ext:*exit-hooks*))
