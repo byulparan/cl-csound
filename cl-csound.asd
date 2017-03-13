@@ -6,7 +6,6 @@
 	       #:bt-semaphore
 	       #:split-sequence
 	       #:cl-ppcre
-	       #:simple-utils
 	       #:alexandria
 	       #:scheduler
 	       #:cl-sndfile)

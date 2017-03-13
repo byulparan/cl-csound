@@ -29,8 +29,28 @@
 	       (csnd (turnon ',name))))))))
 
 
+
+(defun full-pathname (path)
+  "returning absoulte full-pathname of path"
+  #+ccl (namestring (ccl:full-pathname path))
+  #-ccl
+  (labels ((absolute-dir (dir)
+	     (if (eql (car dir) :absolute) (if (find :home dir)
+					       (append
+						(pathname-directory (user-homedir-pathname))
+						(cdr (member :home dir)))
+					       dir)
+		 (let* ((default-dir
+			  (pathname-directory (truename ""))))
+		   (when (find :up dir)
+		     (setf dir (cdr dir))
+		     (setf default-dir (butlast default-dir)))
+		   (append default-dir (cdr dir))))))
+    (namestring (make-pathname :directory (absolute-dir (pathname-directory path)) :name (pathname-name path) :type (pathname-type path)))))
+
+
 (defun load-sample (ifn path &key (skip-time 0.0) (ch :left))
-  (let ((full-path (su:full-pathname path)))
+  (let ((full-path (full-pathname path)))
     (sf:with-open-sndfile (snd full-path)
       (let* ((chanls (sf:chanls snd))
 	     (frames (sf:frames snd)))

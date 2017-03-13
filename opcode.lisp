@@ -75,7 +75,7 @@
 	    (,opcode ,@form))
        (when (typep ,opcode 'ugen)
 	 (with-slots (var) ,opcode
-	   (setf var (su:cat "g" (if var var (make-unique-name (rate ,opcode)))))))
+	   (setf var (concatenate 'string "g" (if var var (make-unique-name (rate ,opcode)))))))
        (build ,opcode)
        (let ((,build-form (get-output-stream-string *streams*)))
        	 (when (get-csound)
@@ -116,7 +116,7 @@
 (defmethod (setf var) (name (opcode opcode))
   (if (var opcode) (set! (alexandria:make-keyword (string-upcase name)) opcode)
       (with-slots (var) opcode
-	(setf var (let ((v (mapcar #!(ppcre:regex-replace-all "-" % "_") (su:mklist name))))
+	(setf var (let ((v (mapcar (lambda (n) (ppcre:regex-replace-all "-" n "_")) (alexandria:ensure-list name))))
 		    (if (= (length v) 1) (car v) v)))
 	opcode)))
 
@@ -153,7 +153,7 @@
       (get-form (fltfy arg))))
 
 (defmethod build :before ((opcode opcode))
-  (alexandria:when-let ((names (su:mklist (var opcode))))
+  (alexandria:when-let ((names (alexandria:ensure-list (var opcode))))
     (dolist (name names)
       (let ((char-code (elt name 0)))
 	(when (char= char-code #\g) (setf char-code (elt name 1)))
@@ -187,7 +187,7 @@
 (defmethod build ((opcode ugen))
   (unless (var opcode) (setf (var opcode) (make-unique-name (rate opcode))))
   (format *streams* "~&~{~a~^,~}~20t~10a ~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~}"
-	  (su:mklist (var opcode))
+	  (alexandria:ensure-list (var opcode))
 	  (name opcode)
 	  (mapcar #'get-form (args opcode))
 	  (and (args opcode) (opt-args opcode))
@@ -235,7 +235,7 @@
 	  (name opcode)
 	  (mapcar #'get-form (args opcode))
 	  (and (args opcode) (opt-args opcode))
-	  (mapcar #!(when % (get-form %)) (opt-args opcode))))
+	  (mapcar #'(lambda (op) (when op (get-form op))) (opt-args opcode))))
 
 (defclass label (command)
   ())
@@ -302,7 +302,7 @@
 
 ;;; 
 (defmacro defopcode (name type args &optional (op-name (string-downcase name)))
-  (let* ((delimiter (find-if #!(or (eql % '&optional) (eql % '&rest)) args))
+  (let* ((delimiter (find-if #'(lambda (arg)(or (eql arg '&optional) (eql arg '&rest))) args))
 	 (parse-args (split-sequence:split-sequence delimiter args)))
     `(progn (defun ,name ,args
 	      (make-instance ',type :args ,(cons 'list (car parse-args))

@@ -9,7 +9,7 @@
 (defmethod build ((opcode csnd-array))
   (unless (var opcode) (setf (var opcode) (make-unique-name (rate opcode))))
   (format *streams* "~&~{~a~^,~}[]~20t~10a ~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~}"
-	  (su:mklist (var opcode))
+	  (alexandria:ensure-list (var opcode))
 	  (name opcode)
 	  (mapcar #'get-form (args opcode))
 	  (and (args opcode) (opt-args opcode))

@@ -113,7 +113,7 @@
 	      `(defun ,(intern (string-upcase (format nil "if-~a" cmd))) (condition label)
 		 (let ((cmd ,(string-downcase cmd)))
 		   (push
-		    #!(format *streams* "~&if ~a ~a ~a" (get-form condition) cmd (get-form label))
+		    #'(lambda () (format *streams* "~&if ~a ~a ~a" (get-form condition) cmd (get-form label)))
 		    *opcodes*))))))
 
 (build-if-goto igoto kgoto goto)
