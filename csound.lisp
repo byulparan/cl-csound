@@ -72,23 +72,22 @@
 			(message-level (+ +note-amplitude-messages+ +samples-out-of-range-message+
 					  +warning-messages+ +benchmark-information+)))
     "Bootup csound engine and initialize to many global variables.
- cl-csound only support one csound instance.
-
- Each platforms, use different rtaudio module. OSX = AuHal, Linux = Alsa. but, If your CsoundLib support
- other rtaudio module, you can use that. 0dbfs set 1. "
+ cl-csound only support one csound instance. 0dbfs set 1."
     (when csound (error "csound already running"))
     (setf *insnum-count* 100
 	  *csound-all-insnums* nil
 	  *csound-insnum-hash* (make-hash-table)
 	  *csound-orchestra* (make-hash-table)
 	  *csound-global-variables* (make-hash-table)
-	  *channels* nil)
+	  *channels* nil
+	  *command-queue* (sb-concurrency:make-mailbox))
     (trivial-main-thread:call-in-main-thread 
      (lambda ()
        (float-features:with-float-traps-masked (:invalid :overflow :divide-by-zero)
 	 (csound-initialize 1)
+	 (setf csound-running-p t)
 	 (setf csound (csound-create (cffi-sys:null-pointer)))
-	 (csoundsetmessagelevel csound message-level)
+	 (csound-set-message-level csound message-level)
 	 (csound-compile-orc csound (format nil "sr = ~d~%ksmps = ~d~%nchnls = 2~%0dbfs = 1~%" sr ksmps))
 	 (csound-set-option csound (format nil "-o~a" dac))
 	 (csound-set-option csound (format nil "-b~d" block-size))
@@ -96,11 +95,20 @@
 	   (csound-set-option csound (format nil "-+rtmidi=~a" rtmidi))
 	   (csound-set-option csound (format nil "-M~d" midi-device)))
 	 (csound-start csound)
-	 (setf csound-perform-thread (perform csound))
+	 (setf csound-perform-thread
+	   (bt:make-thread
+	    (lambda ()
+	      (loop while (and (zerop (csound-perform-ksmps csound))
+			       csound-running-p)
+		    do (loop for task = (sb-concurrency:receive-message-no-hang *command-queue*)
+			     while task
+			     do (funcall task))))
+	    :name "Csound_Perform_Thread"))
 	 ;; (setf csound-scheduler (make-instance 'cb:scheduler :name "CsoundScore"
 	 ;; 					  :timestamp (lambda () (csound-score-time csound))))
 	 ;;(cb:sched-run csound-scheduler)
-	 (funcall *make-csound-hook*))))
+	 (funcall *make-csound-hook*)))
+     :blocking t)
     nil)
   (defun quit-csound ()
     "shutdown to csound engine."
@@ -108,9 +116,11 @@
     ;; (cb:sched-stop csound-scheduler)
     (csound-stop csound)
     (bt:join-thread csound-perform-thread)
+    (csound-destroy csound)
     (setf csound nil
 	  csound-perform-thread nil
-	  csound-scheduler nil))
+	  csound-scheduler nil
+	  *command-queue* nil))
   (defun get-csound ()
     "get pointer of csound instance."
     csound)
@@ -278,8 +288,11 @@
 		    (get-output-stream-string *streams*))))
 	   (if (and (get-csound) (not *debug-mode*))
 	       (progn
-		 (unless (zerop (csound-compile-orc (get-csound) ,form))
-		   (error "instr not loaded~% ~a" ,form))
+		 (sb-concurrency:send-message
+		  *command-queue*
+		  (lambda ()
+		    (unless (zerop (csound-compile-orc (get-csound) ,form))
+		      (error "instr not loaded~% ~a" ,form))))
 		 (pushnew ,insnum *csound-all-insnums*)
 		 (when *pushed-orchestra-p*
 		   (setf (gethash ',(if (atom name) name (car name)) *csound-orchestra*) ,form))
