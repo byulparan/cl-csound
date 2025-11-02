@@ -210,8 +210,10 @@
 
 ;;;
 (defclass gen-routine (ugen)
-  ((ifn :initarg :ifn :reader ifn)
+  ((rate :initform :ir :reader rate)
+   (ifn :initarg :ifn :reader ifn)
    (chanls :initform 1 :accessor chanls)))
+
 
 (defmethod fltfy ((opcode gen-routine))
   (fltfy (ifn opcode)))
