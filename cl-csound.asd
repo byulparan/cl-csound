@@ -2,7 +2,10 @@
 (asdf/defsystem:defsystem #:cl-csound
   :serial t
   :depends-on (#:cffi
+	       :sb-concurrency
 	       #:bordeaux-threads
+	       #:trivial-main-thread
+	       #:float-features
 	       #:bt-semaphore
 	       #:split-sequence
 	       #:cl-ppcre
