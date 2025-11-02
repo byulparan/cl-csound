@@ -101,7 +101,8 @@
 			       csound-running-p)
 		    do (loop for task = (sb-concurrency:receive-message-no-hang *command-queue*)
 			     while task
-			     do (funcall task))))
+			     do (handler-case (funcall task)
+				  (error (e) (format t "Error ~a on csound performce thread~%" e))))))
 	    :name "Csound_Perform_Thread"))
 	 ;; (setf csound-scheduler (make-instance 'cb:scheduler :name "CsoundScore"
 	 ;; 					  :timestamp (lambda () (csound-score-time csound))))
