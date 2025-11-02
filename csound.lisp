@@ -302,6 +302,21 @@
 	       ,form))))))
 
 
+
+(defun inst (name &rest args)
+  (sb-concurrency:send-message
+   *command-queue*
+   (lambda ()
+     (let* ((insnum (gethash name *csound-insnum-hash*))
+	    (len (length args)))
+       (cffi:with-foreign-objects ((pfield 'myflt (1+ len)))
+	 (setf (cffi:mem-aref pfield 'myflt 0) (coerce insnum *myflt*))
+	 (dotimes (i len)
+	   (setf (cffi:mem-aref pfield 'myflt (+ i 1)) (coerce (nth i args) *myflt*)))
+	 (csound-score-event (get-csound) (char-code #\i) pfield (1+ len)))))))
+
+
+
 ;; (defmacro with-render ((output-filename &key (sr 44100) (ksmps 10) (chnls 2) pad keep-csd-file-p) &body body)
 ;;   "Make csound csd file from your lisp code. then rendering that file."
 ;;   (alexandria:with-gensyms (tmp-csd-file)

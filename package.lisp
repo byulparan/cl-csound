@@ -7,6 +7,7 @@
 	   #:quant
 	   #:fltfy
 	   #:definst
+	   #:inst
 	   #:csnd
 	   #:set!
 	   #:assign
