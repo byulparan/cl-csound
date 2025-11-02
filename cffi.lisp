@@ -82,7 +82,7 @@
   (csound :pointer)
   (type :char)
   (pfields :pointer)
-  (num=fields :long))
+  (num-fields :long))
 
 (cffi:defcfun ("csoundScoreEventAbsolute" csound-score-event-absolute) :int
   (csound :pointer)
