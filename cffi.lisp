@@ -95,10 +95,10 @@
   (csound :pointer)
   (seconds myflt))
 
-(cffi:defcfun "csoundGetMessageLevel" :int
+(cffi:defcfun ("csoundGetMessageLevel" csound-get-message-level) :int
   (csound :pointer))
 
-(cffi:defcfun "csoundSetMessageLevel" :void
+(cffi:defcfun ("csoundSetMessageLevel" csound-set-message-level) :void
   (csound :pointer)
   (message-level :int))
 
