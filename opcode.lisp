@@ -175,10 +175,8 @@
 
 ;;; 
 (defclass ugen (opcode)
-  ((rate :accessor rate)))
+  ((rate :initarg :rate :initform *default-sigrate* :accessor rate)))
 
-(defmethod initialize-instance :after ((self ugen) &key)
-  (setf (rate self) *default-sigrate*))
 
 (defmethod get-form ((opcode ugen))
   (unless (var opcode) (setf (var opcode) (make-unique-name (rate opcode))))
