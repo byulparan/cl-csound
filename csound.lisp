@@ -102,19 +102,19 @@ in my case, csoundPerform() is good performance than other."
       (csound-set-option csound (format nil "-M~d" midi-device)))
     (csound-start csound)
     (setf csound-perform-thread (perform csound))
-    (setf csound-scheduler (make-instance 'cb:scheduler :name "CsoundScore"
-							:timestamp (lambda () (csound-score-time csound))))
-    (cb:sched-run csound-scheduler)
-    #+(and sbcl darwin)  (cffi:with-foreign-objects ((sigset :int))
-			 (cffi:foreign-funcall "sigemptyset" :pointer sigset)
-			 (cffi:foreign-funcall "sigaddset" :pointer sigset :int sb-posix:sigpipe)
-			 (cffi:foreign-funcall "sigprocmask" :int 2 :pointer sigset :pointer (cffi-sys:null-pointer)))
+    ;; (setf csound-scheduler (make-instance 'cb:scheduler :name "CsoundScore"
+    ;; 					  :timestamp (lambda () (csound-score-time csound))))
+    ;;(cb:sched-run csound-scheduler)
+    ;; #+(and sbcl darwin)  (cffi:with-foreign-objects ((sigset :int))
+    ;; 			   (cffi:foreign-funcall "sigemptyset" :pointer sigset)
+    ;; 			   (cffi:foreign-funcall "sigaddset" :pointer sigset :int sb-posix:sigpipe)
+    ;; 			   (cffi:foreign-funcall "sigprocmask" :int 2 :pointer sigset :pointer (cffi-sys:null-pointer)))
     (funcall *make-csound-hook*)
     nil)
   (defun quit-csound ()
     "shutdown to csound engine."
     (unless csound (error "csound not playing"))
-    (cb:sched-stop csound-scheduler)
+    ;; (cb:sched-stop csound-scheduler)
     (csound-stop csound)
     (bt:join-thread csound-perform-thread)
     (setf csound nil
@@ -128,15 +128,15 @@ in my case, csoundPerform() is good performance than other."
 
 ;;; 
 
-(defun now ()
-  (cb:sched-time (get-csound-scheduler)))
+;; (defun now ()
+;;   (cb:sched-time (get-csound-scheduler)))
 
-(defun callback (time f &rest args)
-  (apply #'cb:sched-add (get-csound-scheduler) time f args))
+;; (defun callback (time f &rest args)
+;;   (apply #'cb:sched-add (get-csound-scheduler) time f args))
 
-(defun quant (next-time)
-  "Return a time which quantized to given a next-time."
-  (cb:quant next-time (now)))
+;; (defun quant (next-time)
+;;   "Return a time which quantized to given a next-time."
+;;   (cb:quant next-time (now)))
 
 ;;; 
 
@@ -153,20 +153,21 @@ in my case, csoundPerform() is good performance than other."
   (coerce object *myflt*))
 
 (defun insert-score-event-at (time insnum &rest args)
-  (if (eql cb::*scheduling-mode* :realtime) (let ((len (1+ (length args))))
-					      (cffi:with-foreign-objects ((pfields 'myflt len))
-						(setf (cffi:mem-aref pfields 'myflt 0) (fltfy insnum))
-						(dotimes (i (length args))
-						  (setf (cffi:mem-aref pfields 'myflt (+ i 1)) (fltfy (nth i args))))
-						(csound-score-event-absolute (get-csound) (char-code #\i) pfields len (fltfy time))))
-      (format *render-stream* "~&i~d  ~10,5f ~{~10,5f  ~}" (floor (fltfy insnum)) (fltfy time) (mapcar #'fltfy (cdr args)))))
+  ;; (if (eql cb::*scheduling-mode* :realtime) (let ((len (1+ (length args))))
+  ;; 					      (cffi:with-foreign-objects ((pfields 'myflt len))
+  ;; 						(setf (cffi:mem-aref pfields 'myflt 0) (fltfy insnum))
+  ;; 						(dotimes (i (length args))
+  ;; 						  (setf (cffi:mem-aref pfields 'myflt (+ i 1)) (fltfy (nth i args))))
+  ;; 						(csound-score-event-absolute (get-csound) (char-code #\i) pfields len (fltfy time))))
+  ;;     (format *render-stream* "~&i~d  ~10,5f ~{~10,5f  ~}" (floor (fltfy insnum)) (fltfy time) (mapcar #'fltfy (cdr args))))
+  )
 
 (defun stop (&rest ins)
   "Stop function use to terminate instruments. If you just call (stop), all scheduling events are clear, and all
  instruments terminate immediately. If you call (stop 120) or (stop 'foo 'bar), specified instruments release."
   (if ins (loop for synth in ins do (insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 1))
       (progn
-	(cb:sched-clear (get-csound-scheduler))
+	;;(cb:sched-clear (get-csound-scheduler))
 	(dolist (synth (sort *csound-all-insnums* #'<))
 	  (insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 0)))))
 
@@ -297,50 +298,50 @@ in my case, csoundPerform() is good performance than other."
 	       ,form))))))
 
 
-(defmacro with-render ((output-filename &key (sr 44100) (ksmps 10) (chnls 2) pad keep-csd-file-p) &body body)
-  "Make csound csd file from your lisp code. then rendering that file."
-  (alexandria:with-gensyms (tmp-csd-file)
-    `(progn
-       (unless (or ,body ,pad) (error "nothing csound score event!"))
-       (let ((cb::*scheduling-mode* :step)
-	     (,tmp-csd-file (make-pathname :directory (pathname-directory ,output-filename)
-					   :name (pathname-name ,output-filename)
-					   :type "csd")))
-	 (unwind-protect (progn
-			   (with-open-file (*render-stream* ,tmp-csd-file
-							    :direction :output
-							    :if-exists :supersede)
-			     (format *render-stream* "<CsoundSynthesizer>~%")
-			     (format *render-stream* "<CsInstruments>~%~%")
-			     (format *render-stream* "sr = ~d~%" ,sr)
-			     (format *render-stream* "ksmps = ~d~%" ,ksmps)
-			     (format *render-stream* "nchnls = ~d~%" ,chnls)
-			     (format *render-stream* "0dbfs = 1~%~%")
-			     (dolist (var (alexandria:hash-table-values *csound-global-variables*))
-			       (format *render-stream* "~a~%" var))
-			     (terpri *render-stream*)
-			     (dolist (orc (alexandria:hash-table-values *csound-orchestra*))
-			       (format *render-stream* "~a~%~%" orc))
-			     (terpri *render-stream*)
-			     (format *render-stream* "</CsInstruments>~%")
-			     (format *render-stream* "<CsScore>~%")
-			     ,@body
-			     (terpri *render-stream*)
-			     (when ,pad
-			       (format *render-stream* "e ~f" ,pad))
-			     (terpri *render-stream*)
-			     (format *render-stream* "</CsScore>~%")
-			     (format *render-stream* "</CsoundSynthesizer>~%"))
-			   (uiop/run-program:run-program (format nil "csound -o ~a ~a" ,output-filename ,tmp-csd-file)
-							 :output t :error-output t))
-	   (unless ,keep-csd-file-p
-	     (delete-file ,tmp-csd-file)))))))
+;; (defmacro with-render ((output-filename &key (sr 44100) (ksmps 10) (chnls 2) pad keep-csd-file-p) &body body)
+;;   "Make csound csd file from your lisp code. then rendering that file."
+;;   (alexandria:with-gensyms (tmp-csd-file)
+;;     `(progn
+;;        (unless (or ,body ,pad) (error "nothing csound score event!"))
+;;        (let ((cb::*scheduling-mode* :step)
+;; 	     (,tmp-csd-file (make-pathname :directory (pathname-directory ,output-filename)
+;; 					   :name (pathname-name ,output-filename)
+;; 					   :type "csd")))
+;; 	 (unwind-protect (progn
+;; 			   (with-open-file (*render-stream* ,tmp-csd-file
+;; 							    :direction :output
+;; 							    :if-exists :supersede)
+;; 			     (format *render-stream* "<CsoundSynthesizer>~%")
+;; 			     (format *render-stream* "<CsInstruments>~%~%")
+;; 			     (format *render-stream* "sr = ~d~%" ,sr)
+;; 			     (format *render-stream* "ksmps = ~d~%" ,ksmps)
+;; 			     (format *render-stream* "nchnls = ~d~%" ,chnls)
+;; 			     (format *render-stream* "0dbfs = 1~%~%")
+;; 			     (dolist (var (alexandria:hash-table-values *csound-global-variables*))
+;; 			       (format *render-stream* "~a~%" var))
+;; 			     (terpri *render-stream*)
+;; 			     (dolist (orc (alexandria:hash-table-values *csound-orchestra*))
+;; 			       (format *render-stream* "~a~%~%" orc))
+;; 			     (terpri *render-stream*)
+;; 			     (format *render-stream* "</CsInstruments>~%")
+;; 			     (format *render-stream* "<CsScore>~%")
+;; 			     ,@body
+;; 			     (terpri *render-stream*)
+;; 			     (when ,pad
+;; 			       (format *render-stream* "e ~f" ,pad))
+;; 			     (terpri *render-stream*)
+;; 			     (format *render-stream* "</CsScore>~%")
+;; 			     (format *render-stream* "</CsoundSynthesizer>~%"))
+;; 			   (uiop/run-program:run-program (format nil "csound -o ~a ~a" ,output-filename ,tmp-csd-file)
+;; 							 :output t :error-output t))
+;; 	   (unless ,keep-csd-file-p
+;; 	     (delete-file ,tmp-csd-file)))))))
 
 
 
 ;;cleanup
-(labels ((cleanup-csound ()
-	   (when (get-csound)
-	     (quit-csound))))
-  #+ccl (push #'cleanup-csound ccl::*lisp-cleanup-functions*)
-  #+sbcl (push #'clean-up-server sb-ext:*exit-hooks*))
+;; (labels ((cleanup-csound ()
+;; 	   (when (get-csound)
+;; 	     (quit-csound))))
+;;   #+ccl (push #'cleanup-csound ccl::*lisp-cleanup-functions*)
+;;   #+sbcl (push #'clean-up-server sb-ext:*exit-hooks*))

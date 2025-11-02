@@ -49,21 +49,21 @@
     (namestring (make-pathname :directory (absolute-dir (pathname-directory path)) :name (pathname-name path) :type (pathname-type path)))))
 
 
-(defun load-sample (ifn path &key (skip-time 0.0) (ch :left))
-  (let ((full-path (full-pathname path)))
-    (sf:with-open-sndfile (snd full-path)
-      (let* ((chanls (sf:chanls snd))
-	     (frames (sf:frames snd)))
-	(when (and (= chanls 2) (eql ch :both))
-	  (setf frames (* chanls frames)))
-	(let ((gen-routine (ftgen ifn 0 (expt 2 (ceiling (log frames 2))) -1 full-path skip-time 0
-				      (if (= chanls 1) 0
-					  (ecase ch
-					    (:both 0)
-					    (:left 1)
-					    (:right 2))))))
-	  (prog1 gen-routine
-	    (setf (chanls gen-routine) chanls)))))))
+;; (defun load-sample (ifn path &key (skip-time 0.0) (ch :left))
+;;   (let ((full-path (full-pathname path)))
+;;     (sf:with-open-sndfile (snd full-path)
+;;       (let* ((chanls (sf:chanls snd))
+;; 	     (frames (sf:frames snd)))
+;; 	(when (and (= chanls 2) (eql ch :both))
+;; 	  (setf frames (* chanls frames)))
+;; 	(let ((gen-routine (ftgen ifn 0 (expt 2 (ceiling (log frames 2))) -1 full-path skip-time 0
+;; 				      (if (= chanls 1) 0
+;; 					  (ecase ch
+;; 					    (:both 0)
+;; 					    (:left 1)
+;; 					    (:right 2))))))
+;; 	  (prog1 gen-routine
+;; 	    (setf (chanls gen-routine) chanls)))))))
 
 
 (defmacro with-timout (bindings reinit-forms &body body)

@@ -7,8 +7,9 @@
 	       #:split-sequence
 	       #:cl-ppcre
 	       #:alexandria
-	       #:scheduler
-	       #:cl-sndfile)
+	       ;; #:scheduler
+	       ;;#:cl-sndfile
+	       )
   :components ((:file "package")
 	       (:file "library")
 	       (:file "cffi")
