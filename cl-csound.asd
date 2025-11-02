@@ -6,7 +6,6 @@
 	       #:bordeaux-threads
 	       #:trivial-main-thread
 	       #:float-features
-	       #:bt-semaphore
 	       #:split-sequence
 	       #:cl-ppcre
 	       #:alexandria

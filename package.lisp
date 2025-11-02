@@ -20,7 +20,7 @@
 	   #:if-goto
 	   #:?
 	   #:load-sample
-	   #:make-csound
+	   #:run-csound
 	   #:quit-csound
 	   #:with-render
 	   #:make-control-channel
