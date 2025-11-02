@@ -54,7 +54,6 @@
 
 (defvar *channels*)
 
-(defvar *mail* (sb-concurrency:make-mailbox))
 
 
 
