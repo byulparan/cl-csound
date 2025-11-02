@@ -11,57 +11,58 @@
  just translate to csound orchestra expression. and print.
  It useful to debug your definst syntax.")
 
-(defparameter *make-csound-hook* nil
+(defvar *make-csound-hook* nil
   "After booting the csound engine by #'make-csound,
  the variable that stores a function to be called.
  Default, define instrument to other instrument terminate.")
 
-(defparameter *insnum-count* 100
+
+(defparameter *command-queue* nil
+  "")
+
+
+(defvar *insnum-count* 100
   "cl-csound not support Named(string) Instrument. So every time you define instrument,
  this count will increase by one. and this number is insnum of defined instrument.
  This count start at 100.")
 
-(defparameter *csound-all-insnums* nil
+(defvar *csound-all-insnums* nil
   "All insnum of defined instruments.")
 
-(defparameter *csound-insnum-hash* nil
+(defvar *csound-insnum-hash* nil
   "Same instrument's name(lisp's symbol), the same insnum is given.
  This HashTable is pair of lisp's symbol and insnum.")
 
-(defparameter *csound-global-variables* nil
+(defvar *csound-global-variables* nil
   "csound's global commands(zakinit, ftgen, turnoff2, etc..),
  is stored this place. That use rendering your instruments and score functions.")
 
-(defparameter *csound-orchestra* nil
+(defvar *csound-orchestra* nil
   "Translated orchestra expression is sotred this place. That use rendering your instruments and score functions.")
 
-(defparameter *pushed-orchestra-p* t
+(defvar *pushed-orchestra-p* t
   "If this special variable is Nil, not store your orchestra expression to *csound-orchestra*.")
 
-(defparameter *stop-synth-insnum* 10011
+(defvar *stop-synth-insnum* 10011
   "*make-csound-hook* will define stop instrument. That instrument use turnoff2 opcode.
  Turn off instruments with a higher instrument number than the one where turnoff is called.
  so, Your instrument can't use insnum greater than this value.")
 
-(defparameter *render-stream* nil
+(defvar *render-stream* nil
   "cl-csound support realtime, rendering both. in rendering mode, you will create csd file.
  This special variable is stored that csd file's stream.")
 
 (defvar *channels*)
 
-(defun perform (csound)
-  "cl-csound use csoundPerform() for performance. I tested csoundPerform(), csoundPerformKsmps()...
-in my case, csoundPerform() is good performance than other."
-  (bt:make-thread
-   (lambda ()
-     (csound-perform csound)
-     (csound-destroy csound))
-   :name "Csound_Perform_Thread"))
+(defvar *mail* (sb-concurrency:make-mailbox))
+
+
 
 
 (let ((csound nil)
       (csound-perform-thread nil)
-      (csound-scheduler nil))
+      (csound-scheduler nil)
+      (csound-running-p nil))
   (defun run-csound (&key (sr 48000)
 			(ksmps 32)
 			(block-size 256)
