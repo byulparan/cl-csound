@@ -157,7 +157,7 @@
 ;; command-queue API  ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun send-command-queue (task)
+(defun dispatch-queue (task)
   (assert (get-csound) nil "Not Running Csound.")
   (bt:with-lock-held (*command-sync-mutex*)
     (sb-concurrency:send-message
@@ -168,7 +168,7 @@
     (bt:condition-wait *command-sync-condvar* *command-sync-mutex*)))
 
 
-(defun send-command-queue-async (task)
+(defun dispatch-queue-async (task)
   (assert (get-csound) nil "Not Running Csound.")
   (sb-concurrency:send-message
    *command-queue*
@@ -356,7 +356,7 @@
 		    (get-output-stream-string *streams*))))
 	   (if (and (get-csound) (not *debug-mode*))
 	       (let* ((,result nil))
-		 (send-command-queue
+		 (dispatch-queue
 		  (lambda ()
 		    (setf ,result (csound-compile-orc (get-csound) ,form))))
 		 (when (not (zerop ,result))
@@ -373,7 +373,7 @@
 
 
 (defun inst (name beat &rest args)
-  (send-command-queue-async
+  (dispatch-queue-async
    (lambda ()
      (let* ((insnum (gethash name *csound-insnum-hash*))
 	    (len (length args)))
