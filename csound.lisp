@@ -63,13 +63,14 @@
       (csound-scheduler nil)
       (csound-running-p nil))
   (defun run-csound (&key (sr 48000)
-			(ksmps 32)
-			(block-size 256)
-			(dac "dac")
-			rtmidi
-			(midi-device 0)
-			(message-level (+ +note-amplitude-messages+ +samples-out-of-range-message+
-					  +warning-messages+ +benchmark-information+)))
+		       (ksmps 64)
+		       (block-size 256)
+		       (dac "dac")
+		       (rtaudio #+darwin "AuHal")
+		       rtmidi
+		       (midi-device 0)
+		       (message-level (+ +note-amplitude-messages+ +samples-out-of-range-message+
+					 +warning-messages+ +benchmark-information+)))
     "Bootup csound engine and initialize to many global variables.
  cl-csound only support one csound instance. 0dbfs set 1."
     (when csound (error "csound already running"))
@@ -90,6 +91,8 @@
 	 (csound-compile-orc csound (format nil "sr = ~d~%ksmps = ~d~%nchnls = 2~%0dbfs = 1~%" sr ksmps))
 	 (csound-set-option csound (format nil "-o~a" dac))
 	 (csound-set-option csound (format nil "-b~d" block-size))
+	 (when rtaudio
+	   (csound-set-option csound (format nil "-+rtaudio=~a" rtaudio)))
 	 (when (and rtmidi midi-device)
 	   (csound-set-option csound (format nil "-+rtmidi=~a" rtmidi))
 	   (csound-set-option csound (format nil "-M~d" midi-device)))
