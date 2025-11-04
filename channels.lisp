@@ -26,14 +26,17 @@
 		 "channel value invalid. must be max-value(~a) >= init-value(~a) >=min-value(~a)"
 		 max-value init-value min-value)
     (setf name (ppcre:regex-replace-all "-" name "_"))
-    (csound-compile-orc
-       (get-csound)
-       (format nil "gk~a init ~f~%gk~a chnexport ~s, ~d, ~d, ~a, ~f, ~f"
-	       name init-value name name
-	       (ecase direction (:input 1) (:output 2) (:io 3))
-	       (ecase itype (:default 0) (:int-only 1) (:linear 2) (:exponential 3))
-	       (format nil "i(gk~a)" name)
-	       min-value max-value))
+    (sb-concurrency:send-message
+     *command-queue*
+     (lambda ()
+       (csound-compile-orc
+	(get-csound)
+	(format nil "gk~a init ~f~%gk~a chnexport ~s, ~d, ~d, ~a, ~f, ~f"
+		name init-value name name
+		(ecase direction (:input 1) (:output 2) (:io 3))
+		(ecase itype (:default 0) (:int-only 1) (:linear 2) (:exponential 3))
+		(format nil "i(gk~a)" name)
+		min-value max-value))))
     (push name *channels*)))
 
 (defmethod get-form ((arg control-channel))
