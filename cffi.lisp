@@ -1,3 +1,8 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 2025.11.05 byulparan@gmail.com
+;; 
+;; 
+
 (in-package #:csnd)
 
 (cffi:defcfun ("csoundGetVersion" csound-version) :int)

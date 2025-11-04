@@ -1,3 +1,7 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 2025.11.05 byulparan@gmail.com
+;; 
+;; 
 
 (asdf/defsystem:defsystem #:cl-csound
   :serial t
