@@ -1,3 +1,8 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 2025.11.05 byulparan@gmail.com
+;; 
+;; 
+
 (in-package #:csnd)
 
 (defvar *streams* t
@@ -59,7 +64,9 @@
 
 
 
-
+;;;;;;;;;;;;;;;;;;
+;;  Run Csound  ;;
+;;;;;;;;;;;;;;;;;;
 
 (let ((csound nil)
       (csound-perform-thread nil)
@@ -136,6 +143,15 @@
 
 
 
+;;cleanup
+;; (labels ((cleanup-csound ()
+;; 	   (when (get-csound)
+;; 	     (quit-csound))))
+;;   #+ccl (push #'cleanup-csound ccl::*lisp-cleanup-functions*)
+;;   #+sbcl (push #'clean-up-server sb-ext:*exit-hooks*))
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;; command-queue API  ;;
@@ -161,6 +177,10 @@
 
 
 
+;;;;;;;;;;;;;;;;;;;;;
+;;  scheduler API  ;;
+;;;;;;;;;;;;;;;;;;;;;
+
 (defun now ()
   (tempo-clock-beats (get-csound-scheduler)))
 
@@ -173,7 +193,23 @@
   (tempo-clock-quant (get-csound-scheduler) quant))
 
 
-;;; 
+(defun stop (&rest ins)
+  "Stop function use to terminate instruments. If you just call (stop), all scheduling events are clear, and all
+ instruments terminate immediately. If you call (stop 120) or (stop 'foo 'bar), specified instruments release."
+  (if ins (loop for synth in ins do (insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 1))
+    (progn
+      ;;(cb:sched-clear (get-csound-scheduler))
+      (dolist (synth (sort *csound-all-insnums* #'<))
+	(insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 0)))))
+
+ 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;
+;;  scheduler API  ;;
+;;;;;;;;;;;;;;;;;;;;;
+
 
 (defgeneric fltfy (object)
   (:documentation "CsoundAPI use MYFLT type. This function convert from Lisp objects to MYFLT.
@@ -197,17 +233,12 @@
   ;;(format *render-stream* "~&i~d  ~10,5f ~{~10,5f  ~}" (floor (fltfy insnum)) (fltfy time) (mapcar #'fltfy (cdr args)))
 )
 
-(defun stop (&rest ins)
-  "Stop function use to terminate instruments. If you just call (stop), all scheduling events are clear, and all
- instruments terminate immediately. If you call (stop 120) or (stop 'foo 'bar), specified instruments release."
-  (if ins (loop for synth in ins do (insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 1))
-      (progn
-	;;(cb:sched-clear (get-csound-scheduler))
-	(dolist (synth (sort *csound-all-insnums* #'<))
-	  (insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 0)))))
 
-;;; 
-;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  compile orchestra  ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defmacro csnd-binding (let letform &body body)
   "binding for csound's local variables. Don't use it directly. It use internal of slet,slet*."
   (let* ((names nil))
@@ -395,11 +426,3 @@
 ;; 	   (unless ,keep-csd-file-p
 ;; 	     (delete-file ,tmp-csd-file)))))))
 
-
-
-;;cleanup
-;; (labels ((cleanup-csound ()
-;; 	   (when (get-csound)
-;; 	     (quit-csound))))
-;;   #+ccl (push #'cleanup-csound ccl::*lisp-cleanup-functions*)
-;;   #+sbcl (push #'clean-up-server sb-ext:*exit-hooks*))
