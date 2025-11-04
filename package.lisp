@@ -8,7 +8,7 @@
 	   #:fltfy
 	   #:definst
 	   #:inst
-	   #:csnd
+	   #:global
 	   #:set!
 	   #:assign
 	   #:array

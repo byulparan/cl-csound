@@ -66,7 +66,7 @@
        "i."))))
 
 
-(defmacro csnd (&body form)
+(defmacro global (&body form)
   (let ((form (replace-body-on-cound-readtable form))
 	(opcode (gensym))
 	(build-form (gensym)))
