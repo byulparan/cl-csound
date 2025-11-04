@@ -17,9 +17,12 @@
  Default, define instrument to other instrument terminate.")
 
 
-(defparameter *command-queue* nil
+(defvar *command-queue* nil
   "")
 
+(defvar *command-sync-mutex* (bt:make-lock))
+
+(defvar *command-sync-condvar* (bt:make-condition-variable))
 
 (defvar *insnum-count* 100
   "cl-csound not support Named(string) Instrument. So every time you define instrument,
@@ -131,7 +134,32 @@
   (defun get-csound-scheduler ()
     csound-scheduler))
 
-;;; 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; command-queue API  ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun send-command-queue (task)
+  (assert (get-csound) nil "Not Running Csound.")
+  (bt:with-lock-held (*command-sync-mutex*)
+    (sb-concurrency:send-message
+     *command-queue*
+     (lambda ()
+       (funcall task)
+       (bt:condition-notify *command-sync-condvar*)))
+    (bt:condition-wait *command-sync-condvar* *command-sync-mutex*)))
+
+
+(defun send-command-queue-async (task)
+  (assert (get-csound) nil "Not Running Csound.")
+  (sb-concurrency:send-message
+   *command-queue*
+   (lambda ()
+     (funcall task))))
+
+
 
 (defun now ()
   (tempo-clock-beats (get-csound-scheduler)))
@@ -270,12 +298,15 @@
 		 (convert-code (cdr form))))))
 
 
+
+
+
 (defmacro definst (name params &body body)
   "defined instruments. in this context, many core lisp functions are convert to other functions.
  examples)  + -> +~ , * -> *~ , let -> slet, let* -> slet*......
  If *debug-mode* is Nil, definst code is translate to csound orchestra expression, then compile by CsoundCompileOrc()."
   (let* ((body (replace-body-on-cound-readtable body)))
-    (alexandria:with-gensyms (form insnum ins)
+    (alexandria:with-gensyms (form insnum ins result)
       `(let* ((,insnum (if (get-csound) ,(if (atom name) `(alexandria:if-let ((,ins (gethash ',name *csound-insnum-hash*))) ,ins
 							    (setf (gethash ',name *csound-insnum-hash*) (incf *insnum-count*)))
 					     `(setf (gethash ',(car name) *csound-insnum-hash*) ,(second name)))
@@ -293,12 +324,12 @@
 		    (format *streams* "~&endin")
 		    (get-output-stream-string *streams*))))
 	   (if (and (get-csound) (not *debug-mode*))
-	       (progn
-		 (sb-concurrency:send-message
-		  *command-queue*
+	       (let* ((,result nil))
+		 (send-command-queue
 		  (lambda ()
-		    (unless (zerop (csound-compile-orc (get-csound) ,form))
-		      (error "instr not loaded~% ~a" ,form))))
+		    (setf ,result (csound-compile-orc (get-csound) ,form))))
+		 (when (not (zerop ,result))
+		   (error "Error Defintion Instrument \"~a\"" ',name))
 		 (pushnew ,insnum *csound-all-insnums*)
 		 (when *pushed-orchestra-p*
 		   (setf (gethash ',(if (atom name) name (car name)) *csound-orchestra*) ,form))
@@ -311,8 +342,7 @@
 
 
 (defun inst (name beat &rest args)
-  (sb-concurrency:send-message
-   *command-queue*
+  (send-command-queue-async
    (lambda ()
      (let* ((insnum (gethash name *csound-insnum-hash*))
 	    (len (length args)))
