@@ -1,4 +1,4 @@
-(in-package #:csnd)
+(in-package #:csound)
 
 ;;; p opcodes
 (defopcode p func (x))

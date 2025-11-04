@@ -1,5 +1,4 @@
-
-(in-package #:csnd)
+(in-package #:csound)
 
 (defopcode lenarray func (array))
 

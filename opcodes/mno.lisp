@@ -1,4 +1,4 @@
-(in-package #:csnd)
+(in-package #:csound)
 
 (defopcode mac ugen (ksig1 asig1 &rest sigs))
 (defopcode maca ugen (asig1 aisg2 &rest sigs))

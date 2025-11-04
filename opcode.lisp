@@ -3,7 +3,7 @@
 ;; 
 ;; 
 
-(in-package :csnd)
+(in-package :csound)
 
 ;;; dynamic variable for definition instruments. ------------------
 (defvar *default-sigrate* :ar)

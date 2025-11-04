@@ -1,4 +1,4 @@
-(in-package #:csnd)
+(in-package #:csound)
 
 (defopcode dam ugen (asig kthreshold icomp1 icomp2 irtime iftime))
 (defopcode date ugen nil)

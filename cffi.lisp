@@ -3,7 +3,7 @@
 ;; 
 ;; 
 
-(in-package #:csnd)
+(in-package #:csound)
 
 (cffi:defcfun ("csoundGetVersion" csound-version) :int)
 

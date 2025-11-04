@@ -1,4 +1,4 @@
-(in-package :csnd)
+(in-package :csound)
 
 (defopcode vadd command (ifn kval kelements &optional kdstoffset kverbose))
 (defopcode vadd-i command (ifn ival ielements &optional idstoffset) "vadd_i")

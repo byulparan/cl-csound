@@ -1,4 +1,4 @@
-(in-package #:csnd)
+(in-package #:csound)
 (defopcode samphold ugen (asig agate &optional ival ivstor))
 (defopcode sandpaper ugen (iamp idettack &optional inum idamp imaxshake))
 (defopcode scale ugen (kinput kmax kmin))

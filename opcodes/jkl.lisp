@@ -1,4 +1,4 @@
-(in-package #:csnd)
+(in-package #:csound)
 ;;; jack...
 (defopcode jitter ugen (kamp kcpsmin kcpsmax))
 (defopcode jitter2 ugen (ktotamp kamp1 kcps1 kamp2 kcps2 kamp3 kcps3))

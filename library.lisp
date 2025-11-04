@@ -3,7 +3,7 @@
 ;; 
 ;; 
 
-(in-package #:csnd)
+(in-package #:csound)
 
 #-windows
 (pushnew "/usr/local/lib/" cffi:*foreign-library-directories*)

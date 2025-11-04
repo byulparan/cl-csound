@@ -1,4 +1,4 @@
-(in-package #:csnd)
+(in-package #:csound)
 
 (defopcode a func (x))
 (defopcode abs~ func (x) "abs")

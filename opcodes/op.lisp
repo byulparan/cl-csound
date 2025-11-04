@@ -1,7 +1,4 @@
-(in-package #:csnd)
-
-#+sbcl (eval-when (:compile-toplevel :load-toplevel :execute)
-	 (sb-ext:unlock-package :cl))
+(in-package #:csound)
 
 (defparameter *pi~*
   (make-instance 'ugen :var "$M_PI"))

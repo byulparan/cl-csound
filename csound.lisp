@@ -3,7 +3,7 @@
 ;; 
 ;; 
 
-(in-package #:csnd)
+(in-package #:csound)
 
 (defvar *streams* t
   "Lisp's Opcode objects translate to Csound Orchestra expression via this stream in definst.")

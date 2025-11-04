@@ -3,7 +3,7 @@
 ;; 
 ;; 
 
-(in-package :csnd)
+(in-package :csound)
 
 #-windows
 (cffi:defcstruct sched-param

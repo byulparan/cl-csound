@@ -1,4 +1,4 @@
-(in-package #:csnd)
+(in-package #:csound)
 
 (defopcode gain ugen (asig krms &optional ihp iskip))
 (defopcode gainslider ugen (kindex))

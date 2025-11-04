@@ -3,7 +3,7 @@
 ;; 
 ;; 
 
-(in-package #:csnd)
+(in-package #:csound)
 
 (setf *make-csound-hook*
       (lambda ()

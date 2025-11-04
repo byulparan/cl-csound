@@ -3,8 +3,9 @@
 ;; 
 ;; 
 
-(defpackage #:csnd
+(defpackage #:csound
   (:use #:cl)
+  (:shadow #:array #:space)
   (:export #:*debug-mode*
 	   
 	   #:fltfy

@@ -3,7 +3,7 @@
 ;; 
 ;; 
 
-(in-package #:csnd)
+(in-package #:csound)
 
 (defclass channel ()
   ((name :initarg :name :accessor name)
