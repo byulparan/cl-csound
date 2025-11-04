@@ -6,12 +6,22 @@
 (defpackage #:csnd
   (:use #:cl)
   (:export #:*debug-mode*
-	   #:now
-	   #:callback
-	   #:quant
+	   
 	   #:fltfy
+	   #:run-csound
+	   #:quit-csound
+	   #:with-render
+
+	   #:now
+	   #:clock-add
+	   #:quant
+	   
+	   #:dispatch-queue
+	   #:dispatch-queue-async
+	   
 	   #:definst
 	   #:inst
+	   
 	   #:global
 	   #:set!
 	   #:assign
@@ -23,14 +33,12 @@
 	   #:if-igoto
 	   #:if-kgoto
 	   #:if-goto
-	   #:?
-	   #:load-sample
-	   #:run-csound
-	   #:quit-csound
-	   #:with-render
+
 	   #:make-control-channel
 	   #:channel-value
 
+	   #:?
+	   #:load-sample
 	   #:proxy
 	   #:stop
 	   #:with-timout))
