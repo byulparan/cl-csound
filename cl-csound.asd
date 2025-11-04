@@ -9,12 +9,13 @@
 	       #:split-sequence
 	       #:cl-ppcre
 	       #:alexandria
-	       ;; #:scheduler
+	       #:pileup
 	       ;;#:cl-sndfile
 	       )
   :components ((:file "package")
 	       (:file "library")
 	       (:file "cffi")
+	       (:file "scheduler")
 	       (:file "csound")
 	       (:file "channels")
 	       (:file "opcode")

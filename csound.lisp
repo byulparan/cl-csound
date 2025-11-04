@@ -104,9 +104,9 @@
 			     do (handler-case (funcall task)
 				  (error (e) (format t "Error ~a on csound performce thread~%" e))))))
 	    :name "Csound_Perform_Thread"))
-	 ;; (setf csound-scheduler (make-instance 'cb:scheduler :name "CsoundScore"
-	 ;; 					  :timestamp (lambda () (csound-score-time csound))))
-	 ;;(cb:sched-run csound-scheduler)
+	 (setf csound-scheduler (make-instance 'tempo-clock 
+				  :timestamp #'(lambda () (csound-score-time csound))))
+	 (tempo-clock-run csound-scheduler)
 	 (funcall *make-csound-hook*)))
      :blocking t)
     nil)
@@ -115,6 +115,7 @@
     (unless csound (error "csound not playing"))
     ;; (cb:sched-stop csound-scheduler)
     (csound-stop csound)
+    (setf csound-running-p nil)
     (bt:join-thread csound-perform-thread)
     (csound-destroy csound)
     (setf csound nil
@@ -129,15 +130,17 @@
 
 ;;; 
 
-;; (defun now ()
-;;   (cb:sched-time (get-csound-scheduler)))
+(defun now ()
+  (tempo-clock-beats (get-csound-scheduler)))
 
-;; (defun callback (time f &rest args)
-;;   (apply #'cb:sched-add (get-csound-scheduler) time f args))
 
-;; (defun quant (next-time)
-;;   "Return a time which quantized to given a next-time."
-;;   (cb:quant next-time (now)))
+(defun clock-add (beat function &rest args)
+  (tempo-clock-add (get-csound-scheduler) beat (lambda () (apply function args))))
+
+
+(defun clock-quant (quant)
+  (tempo-clock-quant (get-csound-scheduler) quant))
+
 
 ;;; 
 
@@ -154,14 +157,14 @@
   (coerce object *myflt*))
 
 (defun insert-score-event-at (time insnum &rest args)
-  ;; (if (eql cb::*scheduling-mode* :realtime) (let ((len (1+ (length args))))
-  ;; 					      (cffi:with-foreign-objects ((pfields 'myflt len))
-  ;; 						(setf (cffi:mem-aref pfields 'myflt 0) (fltfy insnum))
-  ;; 						(dotimes (i (length args))
-  ;; 						  (setf (cffi:mem-aref pfields 'myflt (+ i 1)) (fltfy (nth i args))))
-  ;; 						(csound-score-event-absolute (get-csound) (char-code #\i) pfields len (fltfy time))))
-  ;;     (format *render-stream* "~&i~d  ~10,5f ~{~10,5f  ~}" (floor (fltfy insnum)) (fltfy time) (mapcar #'fltfy (cdr args))))
-  )
+  (let ((len (1+ (length args))))
+    (cffi:with-foreign-objects ((pfields 'myflt len))
+      (setf (cffi:mem-aref pfields 'myflt 0) (fltfy insnum))
+      (dotimes (i (length args))
+	(setf (cffi:mem-aref pfields 'myflt (+ i 1)) (fltfy (nth i args))))
+      (csound-score-event-absolute (get-csound) (char-code #\i) pfields len (fltfy (beats-to-secs (get-csound-scheduler) time)))))
+  ;;(format *render-stream* "~&i~d  ~10,5f ~{~10,5f  ~}" (floor (fltfy insnum)) (fltfy time) (mapcar #'fltfy (cdr args)))
+)
 
 (defun stop (&rest ins)
   "Stop function use to terminate instruments. If you just call (stop), all scheduling events are clear, and all
@@ -303,17 +306,20 @@
 
 
 
-(defun inst (name &rest args)
+
+(defun inst (name beat &rest args)
   (sb-concurrency:send-message
    *command-queue*
    (lambda ()
      (let* ((insnum (gethash name *csound-insnum-hash*))
 	    (len (length args)))
-       (cffi:with-foreign-objects ((pfield 'myflt (1+ len)))
-	 (setf (cffi:mem-aref pfield 'myflt 0) (coerce insnum *myflt*))
+       (cffi:with-foreign-objects ((pfield 'myflt (+ len 2)))
+	 (setf (cffi:mem-aref pfield 'myflt 0) (coerce insnum *myflt*)
+	       (cffi:mem-aref pfield 'myflt 1) 0.0d0)
 	 (dotimes (i len)
-	   (setf (cffi:mem-aref pfield 'myflt (+ i 1)) (coerce (nth i args) *myflt*)))
-	 (csound-score-event (get-csound) (char-code #\i) pfield (1+ len)))))))
+	   (setf (cffi:mem-aref pfield 'myflt (+ i 2)) (coerce (nth i args) *myflt*)))
+	 (csound-score-event-absolute (get-csound) (char-code #\i) pfield (+ len 2) (beats-to-secs (get-csound-scheduler) beat)))))))
+
 
 
 
