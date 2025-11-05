@@ -64,8 +64,8 @@
   (defun run-csound (&key (sr 48000)
 		       (ksmps 64)
 		       (nchnls 2)
-		       (software-buffer-size 256)
-		       (hardware-buffer-size 1024)
+		       (software-buffer-size 128)
+		       (hardware-buffer-size 512)
 		       (dac "dac")
 		       (rtaudio #+darwin "AuHal")
 		       rtmidi
