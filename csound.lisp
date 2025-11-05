@@ -102,8 +102,7 @@
 	 (setf csound-perform-thread
 	   (bt:make-thread
 	    (lambda ()
-	      (loop while (and (zerop (csound-perform-ksmps csound))
-			       csound-running-p)))
+	      (csound-perform csound))
 	    :name "Csound_Perform_Thread"))
 	 (setf csound-scheduler (make-instance 'tempo-clock 
 				  :timestamp #'(lambda () (csound-get-score-time csound))))
