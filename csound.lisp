@@ -30,7 +30,7 @@
 (defvar *csound-all-insnums* nil
   "All insnum of defined instruments.")
 
-(defvar *csound-insnum-hash* nil
+(defvar *csound-instr-table* nil
   "Same instrument's name(lisp's symbol), the same insnum is given.
  This HashTable is pair of lisp's symbol and insnum.")
 
@@ -83,7 +83,7 @@
     (when csound (error "csound already running"))
     (setf *insnum-count* 100
 	  *csound-all-insnums* nil
-	  *csound-insnum-hash* (make-hash-table)
+	  *csound-instr-table* (make-hash-table)
 	  *csound-orchestra* (make-hash-table)
 	  *csound-global-variables* (make-hash-table)
 	  *channels* nil)
@@ -185,7 +185,7 @@
  That lisp objects are Symbol(may be instrument's name), Number, GenRoutine."))
 
 (defmethod fltfy ((object symbol))
-  (let ((insnum (gethash object *csound-insnum-hash*)))
+  (let ((insnum (gethash object *csound-instr-table*)))
     (if insnum (fltfy insnum)
 	(error "can't fltfy this symbol ~a" object))))
 
@@ -307,9 +307,9 @@
  If *debug-mode* is Nil, definst code is translate to csound orchestra expression, then compile by CsoundCompileOrc()."
   (let* ((body (replace-body-on-cound-readtable body)))
     (alexandria:with-gensyms (form insnum ins result)
-      `(let* ((,insnum (if (get-csound) ,(if (atom name) `(alexandria:if-let ((,ins (gethash ',name *csound-insnum-hash*))) ,ins
-							    (setf (gethash ',name *csound-insnum-hash*) (incf *insnum-count*)))
-					     `(setf (gethash ',(car name) *csound-insnum-hash*) ,(second name)))
+      `(let* ((,insnum (if (get-csound) ,(if (atom name) `(alexandria:if-let ((,ins (gethash ',name *csound-instr-table*))) ,ins
+							    (setf (gethash ',name *csound-instr-table*) (incf *insnum-count*)))
+					     `(setf (gethash ',(car name) *csound-instr-table*) ,(second name)))
 			   100)))
 	 (when (>= ,insnum *stop-synth-insnum*)
 	   (error "too big insnum ~d" ,insnum))
@@ -339,7 +339,7 @@
 
 
 (defun inst (name beat dur &rest args)
-  (let* ((insnum (gethash name *csound-insnum-hash*))
+  (let* ((insnum (gethash name *csound-instr-table*))
 	 (len (length args)))
     (cffi:with-foreign-objects ((pfield 'myflt (+ len 3)))
       (setf (cffi:mem-aref pfield 'myflt 0) (coerce insnum *myflt*)

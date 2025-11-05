@@ -25,7 +25,8 @@
 	   
 	   #:dispatch-queue
 	   #:dispatch-queue-async
-	   
+
+	   #:fltfy
 	   #:definst
 	   #:inst
 	   

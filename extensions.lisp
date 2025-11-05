@@ -21,7 +21,7 @@
   (let ((name (intern (format nil "~a-TEMP-SYNTH" key))))
     (alexandria:with-gensyms ()
       `(progn
-	 (when (find ',name (alexandria:hash-table-keys *csound-insnum-hash*))
+	 (when (find ',name (alexandria:hash-table-keys *csound-instr-table*))
 	   (stop ',name))
 	 ,(when body
 	    `(let ((*pushed-orchestra-p* nil))
