@@ -43,3 +43,10 @@
 	   #:proxy
 	   #:stop
 	   #:with-timout))
+
+
+(defpackage #:csound-user
+  (:use #:cl #:csound)
+  (:shadow cl:array cl:space))
+
+
