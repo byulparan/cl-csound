@@ -12,6 +12,7 @@
 	   #:run-csound
 	   #:quit-csound
 	   #:with-render
+	   #:get-csound
 
 	   #:now
 	   #:clock-add

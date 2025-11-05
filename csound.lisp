@@ -118,7 +118,7 @@
 				  (error (e) (format t "Error ~a on csound performce thread~%" e))))))
 	    :name "Csound_Perform_Thread"))
 	 (setf csound-scheduler (make-instance 'tempo-clock 
-				  :timestamp #'(lambda () (csound-score-time csound))))
+				  :timestamp #'(lambda () (csound-get-score-time csound))))
 	 (tempo-clock-run csound-scheduler)
 	 (funcall *make-csound-hook*)))
      :blocking t)

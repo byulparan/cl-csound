@@ -531,7 +531,7 @@ Enables external software to read audio from Csound after calling csoundPerformB
   (csound :pointer))
 
 
-(define-cfun ("csoundGetRtPlayUserData" csound-getg-rt-play-user-data) :pointer
+(define-cfun ("csoundGetRtPlayUserData" csound-get-rt-play-user-data) :pointer
   "Return pointer to user data pointer for real time audio output."
   (csound :pointer))
 
