@@ -21,6 +21,8 @@
  the variable that stores a function to be called.
  Default, define instrument to other instrument terminate.")
 
+(defvar *stop-hooks* nil)
+
 
 (defvar *csound-instr-count* 100
   "cl-csound not support Named(string) Instrument. So every time you define instrument,
@@ -163,7 +165,9 @@
       (progn
 	(tempo-clock-clear (get-csound-scheduler))
 	(dolist (synth (remove-if-not (lambda (instr) (>= instr 100)) *csound-all-instrs*))
-	  (csound-kill-instance (get-csound) (fltfy synth) (cffi:null-pointer) 0 0))))))
+	  (csound-kill-instance (get-csound) (fltfy synth) (cffi:null-pointer) 0 0))
+	(dolist (hook *stop-hooks*)
+	  (funcall hook))))))
 
  
 
