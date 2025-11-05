@@ -60,13 +60,12 @@
 
 (let ((csound nil)
       (csound-perform-thread nil)
-      (csound-scheduler nil)
-      (csound-running-p nil))
+      (csound-scheduler nil))
   (defun run-csound (&key (sr 48000)
 		       (ksmps 64)
 		       (nchnls 2)
-		       (software-buffer-size 128)
-		       (hardware-buffer-size 256)
+		       (software-buffer-size 256)
+		       (hardware-buffer-size 1024)
 		       (dac "dac")
 		       (rtaudio #+darwin "AuHal")
 		       rtmidi
@@ -116,7 +115,6 @@
     (unless csound (error "csound not playing"))
     (tempo-clock-stop csound-scheduler)
     (csound-stop csound)
-    (setf csound-running-p nil)
     (bt:join-thread csound-perform-thread)
     (csound-destroy csound)
     (setf csound nil
