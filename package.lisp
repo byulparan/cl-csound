@@ -16,6 +16,7 @@
 
 	   #:now
 	   #:clock-add
+	   #:clock-quant
 	   #:quant
 	   
 	   #:dispatch-queue

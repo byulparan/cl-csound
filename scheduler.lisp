@@ -193,7 +193,7 @@
 (defmethod tempo-clock-stop ((tempo-clock tempo-clock))
   (with-slots (beat-dur) tempo-clock
     (when (eql (sched-status tempo-clock) :running)
-      (tempo-clock-add tempo-clock (+ (* (ahead tempo-clock) .5 (reciprocal beat-dur))
+      (tempo-clock-add tempo-clock (+ (* (ahead tempo-clock) .5 (/ 1.0 beat-dur))
 				      (tempo-clock-beats tempo-clock))
 		       (lambda () 'ensure-scheduler-stop-quit))
       (bt:join-thread (sched-thread tempo-clock))

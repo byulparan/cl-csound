@@ -118,7 +118,7 @@
   (defun quit-csound ()
     "shutdown to csound engine."
     (unless csound (error "csound not playing"))
-    ;; (cb:sched-stop csound-scheduler)
+    (tempo-clock-stop csound-scheduler)
     (csound-stop csound)
     (setf csound-running-p nil)
     (bt:join-thread csound-perform-thread)
