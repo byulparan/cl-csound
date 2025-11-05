@@ -16,7 +16,7 @@
  just translate to csound orchestra expression. and print.
  It useful to debug your definst syntax.")
 
-(defvar *run-csound-hooks* nil
+(defvar *run-hooks* nil
   "After booting the csound engine by #'make-csound,
  the variable that stores a function to be called.
  Default, define instrument to other instrument terminate.")
@@ -108,7 +108,7 @@
 	 (setf csound-scheduler (make-instance 'tempo-clock 
 				  :timestamp #'(lambda () (csound-get-score-time csound))))
 	 (tempo-clock-run csound-scheduler)
-	 (dolist (hook *run-csound-hooks*)
+	 (dolist (hook *run-hooks*)
 	   (funcall hook))))
      :blocking t)
     nil)

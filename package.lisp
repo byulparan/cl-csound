@@ -12,6 +12,9 @@
 	   #:+samples-out-of-range-message+
 	   #:+warning-messages+
 	   #:+benchmark-information+
+
+	   #:*run-hooks*
+	   #:*stop-hooks*
 	   
 	   #:run-csound
 	   #:quit-csound
