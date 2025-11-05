@@ -48,6 +48,19 @@
 	   #:make-control-channel
 	   #:channel-value
 
+	   #:midicps
+	   #:rrand
+	   #:exp-rand
+	   #:sinr
+	   #:cosr
+	   #:once
+	   #:nth-beat
+	   #:beat-count
+	   #:latch
+	   #:coin
+	   #:schedule
+	   #:with-lambda
+	   
 	   #:?
 	   #:load-sample
 	   #:proxy
