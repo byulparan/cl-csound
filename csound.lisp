@@ -166,6 +166,10 @@
 	(dolist (hook *stop-hooks*)
 	  (funcall hook))))))
 
+
+(defun bpm (&optional new-bpm)
+  (if new-bpm (tempo-clock-set-bpm (get-csound-scheduler) new-bpm)
+    (tempo-clock-bpm (get-csound-scheduler))))
  
 
 

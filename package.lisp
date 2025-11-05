@@ -25,9 +25,7 @@
 	   #:clock-add
 	   #:clock-quant
 	   #:quant
-	   
-	   #:dispatch-queue
-	   #:dispatch-queue-async
+	   #:bpm
 
 	   #:fltfy
 	   #:definst
