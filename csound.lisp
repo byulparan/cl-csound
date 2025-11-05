@@ -22,13 +22,6 @@
  Default, define instrument to other instrument terminate.")
 
 
-(defvar *command-queue* nil
-  "")
-
-(defvar *command-sync-mutex* (bt:make-lock))
-
-(defvar *command-sync-condvar* (bt:make-condition-variable))
-
 (defvar *insnum-count* 100
   "cl-csound not support Named(string) Instrument. So every time you define instrument,
  this count will increase by one. and this number is insnum of defined instrument.
@@ -74,7 +67,9 @@
       (csound-running-p nil))
   (defun run-csound (&key (sr 48000)
 		       (ksmps 64)
-		       (block-size 256)
+		       (nchnls 2)
+		       (software-buffer-size 128)
+		       (hardware-buffer-size 256)
 		       (dac "dac")
 		       (rtaudio #+darwin "AuHal")
 		       rtmidi
@@ -89,8 +84,7 @@
 	  *csound-insnum-hash* (make-hash-table)
 	  *csound-orchestra* (make-hash-table)
 	  *csound-global-variables* (make-hash-table)
-	  *channels* nil
-	  *command-queue* (sb-concurrency:make-mailbox))
+	  *channels* nil)
     (trivial-main-thread:call-in-main-thread 
      (lambda ()
        (float-features:with-float-traps-masked (:invalid :overflow :divide-by-zero)
@@ -98,9 +92,11 @@
 	 (setf csound-running-p t)
 	 (setf csound (csound-create (cffi-sys:null-pointer)))
 	 (csound-set-message-level csound message-level)
-	 (csound-compile-orc csound (format nil "sr = ~d~%ksmps = ~d~%nchnls = 2~%0dbfs = 1~%" sr ksmps))
+	 (csound-compile-orc csound (format nil "sr = ~d~%ksmps = ~d~%nchnls = ~d~%0dbfs = 1~%" sr ksmps nchnls))
+	 (csound-set-option csound "--realtime")
 	 (csound-set-option csound (format nil "-o~a" dac))
-	 (csound-set-option csound (format nil "-b~d" block-size))
+	 (csound-set-option csound (format nil "-b~d" software-buffer-size))
+	 (csound-set-option csound (format nil "-B~d" hardware-buffer-size))
 	 (when rtaudio
 	   (csound-set-option csound (format nil "-+rtaudio=~a" rtaudio)))
 	 (when (and rtmidi midi-device)
@@ -111,11 +107,7 @@
 	   (bt:make-thread
 	    (lambda ()
 	      (loop while (and (zerop (csound-perform-ksmps csound))
-			       csound-running-p)
-		    do (loop for task = (sb-concurrency:receive-message-no-hang *command-queue*)
-			     while task
-			     do (handler-case (funcall task)
-				  (error (e) (format t "Error ~a on csound performce thread~%" e))))))
+			       csound-running-p)))
 	    :name "Csound_Perform_Thread"))
 	 (setf csound-scheduler (make-instance 'tempo-clock 
 				  :timestamp #'(lambda () (csound-get-score-time csound))))
@@ -133,8 +125,7 @@
     (csound-destroy csound)
     (setf csound nil
 	  csound-perform-thread nil
-	  csound-scheduler nil
-	  *command-queue* nil))
+	  csound-scheduler nil))
   (defun get-csound ()
     "get pointer of csound instance."
     csound)
@@ -150,30 +141,6 @@
 ;;   #+ccl (push #'cleanup-csound ccl::*lisp-cleanup-functions*)
 ;;   #+sbcl (push #'clean-up-server sb-ext:*exit-hooks*))
 
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;
-;; command-queue API  ;;
-;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun dispatch-queue (task)
-  (assert (get-csound) nil "Not Running Csound.")
-  (bt:with-lock-held (*command-sync-mutex*)
-    (sb-concurrency:send-message
-     *command-queue*
-     (lambda ()
-       (funcall task)
-       (bt:condition-notify *command-sync-condvar*)))
-    (bt:condition-wait *command-sync-condvar* *command-sync-mutex*)))
-
-
-(defun dispatch-queue-async (task)
-  (assert (get-csound) nil "Not Running Csound.")
-  (sb-concurrency:send-message
-   *command-queue*
-   (lambda ()
-     (funcall task))))
 
 
 
@@ -356,10 +323,7 @@
 		    (get-output-stream-string *streams*))))
 	   (if (and (get-csound) (not *debug-mode*))
 	       (let* ((,result nil))
-		 (dispatch-queue
-		  (lambda ()
-		    (setf ,result (csound-compile-orc (get-csound) ,form))))
-		 (when (not (zerop ,result))
+		 (when (not (zerop (csound-compile-orc (get-csound) ,form)))
 		   (error "Error Defintion Instrument \"~a\"" ',name))
 		 (pushnew ,insnum *csound-all-insnums*)
 		 (when *pushed-orchestra-p*
@@ -373,16 +337,14 @@
 
 
 (defun inst (name beat &rest args)
-  (dispatch-queue-async
-   (lambda ()
-     (let* ((insnum (gethash name *csound-insnum-hash*))
-	    (len (length args)))
-       (cffi:with-foreign-objects ((pfield 'myflt (+ len 2)))
-	 (setf (cffi:mem-aref pfield 'myflt 0) (coerce insnum *myflt*)
-	       (cffi:mem-aref pfield 'myflt 1) 0.0d0)
-	 (dotimes (i len)
-	   (setf (cffi:mem-aref pfield 'myflt (+ i 2)) (coerce (nth i args) *myflt*)))
-	 (csound-score-event-absolute (get-csound) (char-code #\i) pfield (+ len 2) (beats-to-secs (get-csound-scheduler) beat)))))))
+  (let* ((insnum (gethash name *csound-insnum-hash*))
+	 (len (length args)))
+    (cffi:with-foreign-objects ((pfield 'myflt (+ len 2)))
+      (setf (cffi:mem-aref pfield 'myflt 0) (coerce insnum *myflt*)
+	    (cffi:mem-aref pfield 'myflt 1) 0.0d0)
+      (dotimes (i len)
+	(setf (cffi:mem-aref pfield 'myflt (+ i 2)) (coerce (nth i args) *myflt*)))
+      (csound-score-event-absolute (get-csound) (char-code #\i) pfield (+ len 2) (beats-to-secs (get-csound-scheduler) beat)))))
 
 
 

@@ -84,12 +84,9 @@
        (build ,opcode)
        (let ((,build-form (get-output-stream-string *streams*)))
        	 (when (get-csound)
-	   (sb-concurrency:send-message
-	    *command-queue*
-	    (lambda ()
-       	      (when (or (zerop (length ,build-form))
-			(not (zerop (csound-compile-orc (get-csound) ,build-form))))
-       		(error "error! ~a" ,build-form))))
+	   (when (or (zerop (length ,build-form))
+		     (not (zerop (csound-compile-orc (get-csound) ,build-form))))
+       	     (error "error! ~a" ,build-form))
 	   (when (typep ,opcode 'ugen)
 	     (setf (gethash (intern (string-upcase (var ,opcode)) :keyword)
 			    *csound-global-variables*)

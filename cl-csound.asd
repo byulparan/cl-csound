@@ -7,7 +7,6 @@
   :serial t
   :depends-on (#:cffi
 	       #:cffi-libffi
-	       :sb-concurrency
 	       #:bordeaux-threads
 	       #:trivial-main-thread
 	       #:float-features
