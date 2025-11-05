@@ -5,18 +5,6 @@
 
 (in-package #:csound)
 
-(setf *make-csound-hook*
-      (lambda ()
-	(csound-compile-orc
-	 (get-csound)
-	 (format nil
-		 "instr ~d
-                turnoff2 p4, 0, p5
-                turnoff
-                 endin"
-		 *stop-synth-insnum*))))
-
-
 (defmacro proxy (key &optional body &key (fade-time 4))
   (let ((name (intern (format nil "~a-TEMP-SYNTH" key))))
     (alexandria:with-gensyms ()

@@ -16,19 +16,19 @@
  just translate to csound orchestra expression. and print.
  It useful to debug your definst syntax.")
 
-(defvar *make-csound-hook* nil
+(defvar *run-csound-hooks* nil
   "After booting the csound engine by #'make-csound,
  the variable that stores a function to be called.
  Default, define instrument to other instrument terminate.")
 
 
-(defvar *insnum-count* 100
+(defvar *csound-instr-count* 100
   "cl-csound not support Named(string) Instrument. So every time you define instrument,
  this count will increase by one. and this number is insnum of defined instrument.
  This count start at 100.")
 
-(defvar *csound-all-insnums* nil
-  "All insnum of defined instruments.")
+(defvar *csound-all-instrs* nil
+  "All instr number of defined instruments.")
 
 (defvar *csound-instr-table* nil
   "Same instrument's name(lisp's symbol), the same insnum is given.
@@ -43,11 +43,6 @@
 
 (defvar *pushed-orchestra-p* t
   "If this special variable is Nil, not store your orchestra expression to *csound-orchestra*.")
-
-(defvar *stop-synth-insnum* 10011
-  "*make-csound-hook* will define stop instrument. That instrument use turnoff2 opcode.
- Turn off instruments with a higher instrument number than the one where turnoff is called.
- so, Your instrument can't use insnum greater than this value.")
 
 (defvar *render-stream* nil
   "cl-csound support realtime, rendering both. in rendering mode, you will create csd file.
@@ -74,15 +69,12 @@
 		       (rtaudio #+darwin "AuHal")
 		       rtmidi
 		       (midi-device 0)
-		       (message-level (+ +note-amplitude-messages+
-					 +samples-out-of-range-message+
-					 +warning-messages+
-					 +benchmark-information+)))
+		       (message-level +warning-messages+))
     "Bootup csound engine and initialize to many global variables.
  cl-csound only support one csound instance. 0dbfs set 1."
     (when csound (error "csound already running"))
-    (setf *insnum-count* 100
-	  *csound-all-insnums* nil
+    (setf *csound-instr-count* 100
+	  *csound-all-instrs* nil
 	  *csound-instr-table* (make-hash-table)
 	  *csound-orchestra* (make-hash-table)
 	  *csound-global-variables* (make-hash-table)
@@ -114,7 +106,8 @@
 	 (setf csound-scheduler (make-instance 'tempo-clock 
 				  :timestamp #'(lambda () (csound-get-score-time csound))))
 	 (tempo-clock-run csound-scheduler)
-	 (funcall *make-csound-hook*)))
+	 (dolist (hook *run-csound-hooks*)
+	   (funcall hook))))
      :blocking t)
     nil)
   (defun quit-csound ()
@@ -137,11 +130,11 @@
 
 
 ;;cleanup
-;; (labels ((cleanup-csound ()
-;; 	   (when (get-csound)
-;; 	     (quit-csound))))
-;;   #+ccl (push #'cleanup-csound ccl::*lisp-cleanup-functions*)
-;;   #+sbcl (push #'clean-up-server sb-ext:*exit-hooks*))
+(labels ((cleanup-csound ()
+	   (when (get-csound)
+	     (quit-csound))))
+  #+ccl (push #'cleanup-csound ccl::*lisp-cleanup-functions*)
+  #+sbcl (push #'cleanup-csound sb-ext:*exit-hooks*))
 
 
 
@@ -162,17 +155,17 @@
   (tempo-clock-quant (get-csound-scheduler) quant))
 
 
-(defun stop (&rest ins)
-  "Stop function use to terminate instruments. If you just call (stop), all scheduling events are clear, and all
- instruments terminate immediately. If you call (stop 120) or (stop 'foo 'bar), specified instruments release."
-  (if ins (loop for synth in ins do (insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 1))
-    (progn
-      (tempo-clock-clear (get-csound-scheduler))
-      (dolist (synth (sort *csound-all-insnums* #'<))
-	(insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 0)))))
+(defun stop (&rest instrs)
+  "Stop function use to terminate instruments. If you just call (stop), all scheduling events are clear, and
+ instruments(insnum >= 100) terminate immediately. If you call (stop 60) or (stop 'foo 'bar), specified instruments release."
+  (when (get-csound)
+    (if instrs (loop for synth in instrs do (csound-kill-instance (get-csound) (fltfy synth) (cffi:null-pointer) 0 1))
+      (progn
+	(tempo-clock-clear (get-csound-scheduler))
+	(dolist (synth (remove-if-not (lambda (instr) (>= instr 100)) *csound-all-instrs*))
+	  (csound-kill-instance (get-csound) (fltfy synth) (cffi:null-pointer) 0 0))))))
 
  
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;
@@ -191,17 +184,6 @@
 
 (defmethod fltfy ((object number))
   (coerce object *myflt*))
-
-(defun insert-score-event-at (time insnum &rest args)
-  (let ((len (1+ (length args))))
-    (cffi:with-foreign-objects ((pfields 'myflt len))
-      (setf (cffi:mem-aref pfields 'myflt 0) (fltfy insnum))
-      (dotimes (i (length args))
-	(setf (cffi:mem-aref pfields 'myflt (+ i 1)) (fltfy (nth i args))))
-      (csound-score-event-absolute (get-csound) (char-code #\i) pfields len (fltfy (beats-to-secs (get-csound-scheduler) time)))))
-  ;;(format *render-stream* "~&i~d  ~10,5f ~{~10,5f  ~}" (floor (fltfy insnum)) (fltfy time) (mapcar #'fltfy (cdr args)))
-)
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -308,11 +290,9 @@
   (let* ((body (replace-body-on-cound-readtable body)))
     (alexandria:with-gensyms (form insnum ins result)
       `(let* ((,insnum (if (get-csound) ,(if (atom name) `(alexandria:if-let ((,ins (gethash ',name *csound-instr-table*))) ,ins
-							    (setf (gethash ',name *csound-instr-table*) (incf *insnum-count*)))
+							    (setf (gethash ',name *csound-instr-table*) (incf *csound-instr-count*)))
 					     `(setf (gethash ',(car name) *csound-instr-table*) ,(second name)))
 			   100)))
-	 (when (>= ,insnum *stop-synth-insnum*)
-	   (error "too big insnum ~d" ,insnum))
 	 (let* ((,form
 		  (let* ((*streams* (make-string-output-stream))
 			 (*opcodes* nil))
@@ -327,12 +307,9 @@
 	       (let* ((,result nil))
 		 (when (not (zerop (csound-compile-orc (get-csound) ,form)))
 		   (error "Error Defintion Instrument \"~a\"" ',name))
-		 (pushnew ,insnum *csound-all-insnums*)
+		 (pushnew ,insnum *csound-all-instrs*)
 		 (when *pushed-orchestra-p*
-		   (setf (gethash ',(if (atom name) name (car name)) *csound-orchestra*) ,form))
-		 (defun ,(if (atom name) name (car name)) ,(append (list 'itime 'idur) params)
-		   (insert-score-event-at
-		    itime ,insnum 0 idur ,@params)))
+		   (setf (gethash ',(if (atom name) name (car name)) *csound-orchestra*) ,form)))
 	       ,form))))))
 
 
