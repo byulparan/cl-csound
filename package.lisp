@@ -7,8 +7,12 @@
   (:use #:cl)
   (:shadow #:array #:space)
   (:export #:*debug-mode*
+
+	   #:+note-amplitude-messages+
+	   #:+samples-out-of-range-message+
+	   #:+warning-messages+
+	   #:+benchmark-information+
 	   
-	   #:fltfy
 	   #:run-csound
 	   #:quit-csound
 	   #:with-render

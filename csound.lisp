@@ -74,8 +74,10 @@
 		       (rtaudio #+darwin "AuHal")
 		       rtmidi
 		       (midi-device 0)
-		       (message-level (+ +note-amplitude-messages+ +samples-out-of-range-message+
-					 +warning-messages+ +benchmark-information+)))
+		       (message-level (+ +note-amplitude-messages+
+					 +samples-out-of-range-message+
+					 +warning-messages+
+					 +benchmark-information+)))
     "Bootup csound engine and initialize to many global variables.
  cl-csound only support one csound instance. 0dbfs set 1."
     (when csound (error "csound already running"))
@@ -165,7 +167,7 @@
  instruments terminate immediately. If you call (stop 120) or (stop 'foo 'bar), specified instruments release."
   (if ins (loop for synth in ins do (insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 1))
     (progn
-      ;;(cb:sched-clear (get-csound-scheduler))
+      (tempo-clock-clear (get-csound-scheduler))
       (dolist (synth (sort *csound-all-insnums* #'<))
 	(insert-score-event-at (now) *stop-synth-insnum* 0 1 synth 0)))))
 
