@@ -313,7 +313,8 @@
 		   (error "Error Defintion Instrument \"~a\"" ',name))
 		 (pushnew ,insnum *csound-all-instrs*)
 		 (when *pushed-orchestra-p*
-		   (setf (gethash ',(if (atom name) name (car name)) *csound-orchestra*) ,form)))
+		   (setf (gethash ',(if (atom name) name (car name)) *csound-orchestra*) ,form))
+		 ',name)
 	       ,form))))))
 
 
