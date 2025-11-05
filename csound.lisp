@@ -336,15 +336,16 @@
 
 
 
-(defun inst (name beat &rest args)
+(defun inst (name beat dur &rest args)
   (let* ((insnum (gethash name *csound-insnum-hash*))
 	 (len (length args)))
-    (cffi:with-foreign-objects ((pfield 'myflt (+ len 2)))
+    (cffi:with-foreign-objects ((pfield 'myflt (+ len 3)))
       (setf (cffi:mem-aref pfield 'myflt 0) (coerce insnum *myflt*)
-	    (cffi:mem-aref pfield 'myflt 1) 0.0d0)
+	    (cffi:mem-aref pfield 'myflt 1) 0.0d0
+	    (cffi:mem-aref pfield 'myflt 2) (coerce dur *myflt*))
       (dotimes (i len)
-	(setf (cffi:mem-aref pfield 'myflt (+ i 2)) (coerce (nth i args) *myflt*)))
-      (csound-score-event-absolute (get-csound) (char-code #\i) pfield (+ len 2) (beats-to-secs (get-csound-scheduler) beat)))))
+	(setf (cffi:mem-aref pfield 'myflt (+ i 3)) (coerce (nth i args) *myflt*)))
+      (csound-score-event-absolute (get-csound) (char-code #\i) pfield (+ len 3) (beats-to-secs (get-csound-scheduler) beat)))))
 
 
 
