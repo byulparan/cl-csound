@@ -11,12 +11,14 @@
 #+windows
 (pushnew "c:/program files/csound6/bin/" cffi:*foreign-library-directories*)
 
-(cffi:define-foreign-library csoundlib
-  (:darwin (:framework "CsoundLib64"))
-  (:unix (:or "libcsound64.so"))
-  (:windows "csound64.dll"))
+;; (cffi:define-foreign-library csoundlib
+;;   (:darwin (:framework "CsoundLib64"))
+;;   (:unix (:or "libcsound64.so"))
+;;   (:windows "csound64.dll"))
 
-(cffi:use-foreign-library csoundlib)
+;; (cffi:use-foreign-library csoundlib)
+
+(cffi:load-foreign-library "/Applications/Csound/CsoundLib64.framework/CsoundLib64")
 
 (cffi:defcfun ("csoundGetSizeOfMYFLT" csound-size-of-myflt) :int)
 

@@ -85,7 +85,7 @@
        (let ((,build-form (get-output-stream-string *streams*)))
        	 (when (get-csound)
 	   (when (or (zerop (length ,build-form))
-		     (not (zerop (csound-compile-orc (get-csound) ,build-form))))
+		     (not (zerop (csound-compile-orc (get-csound) ,build-form 0))))
        	     (error "error! ~a" ,build-form))
 	   (when (typep ,opcode 'ugen)
 	     (setf (gethash (intern (string-upcase (var ,opcode)) :keyword)

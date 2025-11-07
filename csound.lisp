@@ -59,7 +59,7 @@
 ;;;;;;;;;;;;;;;;;;
 
 (let ((csound nil)
-      (csound-perform-thread nil)
+      (csound-performance-thread nil)
       (csound-scheduler nil))
   (defun run-csound (&key (sr 48000)
 		       (ksmps 64)
@@ -67,7 +67,7 @@
 		       (software-buffer-size 128)
 		       (hardware-buffer-size 512)
 		       (dac "dac")
-		       (rtaudio #+darwin "AuHal")
+		       rtaudio
 		       rtmidi
 		       (midi-device 0)
 		       (message-level +warning-messages+))
@@ -83,11 +83,11 @@
     (trivial-main-thread:call-in-main-thread 
      (lambda ()
        (float-features:with-float-traps-masked (:invalid :overflow :divide-by-zero)
-	 (csound-initialize 1)
-	 (setf csound-running-p t)
-	 (setf csound (csound-create (cffi-sys:null-pointer)))
+	 (csound-initialize +csoundinit-no-signal-handler+)
+	 (setf csound (csound-create (cffi:null-pointer) (cffi:null-pointer)))
+	 (setf csound-performance-thread (csound-create-performance-thread csound))
 	 (csound-set-message-level csound message-level)
-	 (csound-compile-orc csound (format nil "sr = ~d~%ksmps = ~d~%nchnls = ~d~%0dbfs = 1~%" sr ksmps nchnls))
+	 (csound-compile-orc csound (format nil "sr = ~d~%ksmps = ~d~%nchnls = ~d~%0dbfs = 1~%" sr ksmps nchnls) 0)
 	 (csound-set-option csound "--realtime")
 	 (csound-set-option csound (format nil "-o~a" dac))
 	 (csound-set-option csound (format nil "-b~d" software-buffer-size))
@@ -98,11 +98,7 @@
 	   (csound-set-option csound (format nil "-+rtmidi=~a" rtmidi))
 	   (csound-set-option csound (format nil "-M~d" midi-device)))
 	 (csound-start csound)
-	 (setf csound-perform-thread
-	   (bt:make-thread
-	    (lambda ()
-	      (csound-perform csound))
-	    :name "Csound_Perform_Thread"))
+	 (csound-performance-thread-play csound-performance-thread)
 	 (setf csound-scheduler (make-instance 'tempo-clock 
 				  :timestamp #'(lambda () (csound-get-score-time csound))))
 	 (tempo-clock-run csound-scheduler)
@@ -114,15 +110,19 @@
     "shutdown to csound engine."
     (unless csound (error "csound not playing"))
     (tempo-clock-stop csound-scheduler)
-    (csound-stop csound)
-    (bt:join-thread csound-perform-thread)
+    (csound-performance-thread-stop csound-performance-thread)
+    (csound-performance-thread-join csound-performance-thread)
+    (csound-destroy-performance-thread csound-performance-thread)
     (csound-destroy csound)
     (setf csound nil
-	  csound-perform-thread nil
+	  csound-performance-thread nil
 	  csound-scheduler nil))
   (defun get-csound ()
     "get pointer of csound instance."
     csound)
+  (defun get-csound-performance-thread ()
+    "get pointer of csound performance thread."
+    csound-performance-thread)
   (defun get-csound-scheduler ()
     csound-scheduler))
 
@@ -161,8 +161,8 @@
     (if instrs (loop for synth in instrs do (csound-kill-instance (get-csound) (fltfy synth) (cffi:null-pointer) 0 1))
       (progn
 	(tempo-clock-clear (get-csound-scheduler))
-	(dolist (synth (remove-if-not (lambda (instr) (>= instr 100)) *csound-all-instrs*))
-	  (csound-kill-instance (get-csound) (fltfy synth) (cffi:null-pointer) 0 0))
+	;; (dolist (synth (remove-if-not (lambda (instr) (>= instr 100)) *csound-all-instrs*))
+	;;   (csound-kill-instance (get-csound) (fltfy synth) (cffi:null-pointer) 0 0))
 	(dolist (hook *stop-hooks*)
 	  (funcall hook))))))
 
@@ -310,7 +310,8 @@
 		    (get-output-stream-string *streams*))))
 	   (if (and (get-csound) (not *debug-mode*))
 	       (let* ((,result nil))
-		 (when (not (zerop (csound-compile-orc (get-csound) ,form)))
+		 ;; (csound-performance-thread-compile-orc (get-csound-performance-thread) ,form)
+		 (when (not (zerop (csound-compile-orc (get-csound) ,form 0)))
 		   (error "Error Defintion Instrument \"~a\"" ',name))
 		 (pushnew ,insnum *csound-all-instrs*)
 		 (when *pushed-orchestra-p*
@@ -322,15 +323,15 @@
 
 
 (defun inst (name beat dur &rest args)
-  (let* ((insnum (gethash name *csound-instr-table*))
+  (let* ((insnum (fltfy name))
 	 (len (length args)))
-    (cffi:with-foreign-objects ((pfield 'myflt (+ len 3)))
-      (setf (cffi:mem-aref pfield 'myflt 0) (coerce insnum *myflt*)
-	    (cffi:mem-aref pfield 'myflt 1) 0.0d0
-	    (cffi:mem-aref pfield 'myflt 2) (coerce dur *myflt*))
+    (cffi:with-foreign-objects ((p-field 'myflt (+ len 3)))
+      (setf (cffi:mem-aref p-field 'myflt 0) (coerce insnum *myflt*)
+	    (cffi:mem-aref p-field 'myflt 1) (fltfy (beats-to-secs (get-csound-scheduler) beat))
+	    (cffi:mem-aref p-field 'myflt 2) (coerce dur *myflt*))
       (dotimes (i len)
-	(setf (cffi:mem-aref pfield 'myflt (+ i 3)) (coerce (nth i args) *myflt*)))
-      (csound-score-event-absolute (get-csound) (char-code #\i) pfield (+ len 3) (beats-to-secs (get-csound-scheduler) beat)))))
+	(setf (cffi:mem-aref p-field 'myflt (+ i 3)) (coerce (nth i args) *myflt*)))
+      (csound-performance-thread-score-event (get-csound-performance-thread) 1 (char-code #\i) (+ len 3) p-field))))
 
 
 

@@ -8,6 +8,8 @@
   (:shadow #:array #:space)
   (:export #:*debug-mode*
 
+ 	   #:+csoundinit-no-signal-handler+
+	   #:+csoundinit-no-atexit+  
 	   #:+note-amplitude-messages+
 	   #:+samples-out-of-range-message+
 	   #:+warning-messages+
@@ -20,6 +22,7 @@
 	   #:quit-csound
 	   #:with-render
 	   #:get-csound
+	   #:get-csound-performance-thread
 
 	   #:now
 	   #:clock-add
