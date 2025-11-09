@@ -80,7 +80,7 @@
 (defopcode osciln ugen (kamp ifrq ifn itimes))
 (defopcode oscils ugen (iamp icps iphs &optional iflg))
 ;;; out32
-(defopcode out command (asig))
+(defopcode out command (asig &rest asigs))
 (defopcode outc command (asig &rest asign))
 (defopcode outch command (kchan1 asig1 &rest kchan-sig))
 (defopcode outh command (asig1 asig2 asig3 asig4 asig5 asig6))
