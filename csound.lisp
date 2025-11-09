@@ -288,7 +288,7 @@
 
 
 
-(defmacro definst (name params &body body)
+(defmacro definstr (name params &body body)
   "defined instruments. in this context, many core lisp functions are convert to other functions.
  examples)  + -> +~ , * -> *~ , let -> slet, let* -> slet*......
  If *debug-mode* is Nil, definst code is translate to csound orchestra expression, then compile by CsoundCompileOrc()."
@@ -322,7 +322,7 @@
 
 
 
-(defun inst (name beat dur &rest args)
+(defun instr (name beat dur &rest args)
   (let* ((insnum (fltfy name))
 	 (len (length args)))
     (cffi:with-foreign-objects ((p-field 'myflt (+ len 3)))

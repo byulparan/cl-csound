@@ -31,8 +31,8 @@
 	   #:bpm
 
 	   #:fltfy
-	   #:definst
-	   #:inst
+	   #:definstr
+	   #:instr
 	   
 	   #:global
 	   #:set!
