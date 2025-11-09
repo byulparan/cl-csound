@@ -154,29 +154,16 @@
   (tempo-clock-quant (get-csound-scheduler) quant))
 
 
-(defun stop (&rest instrs)
-  "Stop function use to terminate instruments. If you just call (stop), all scheduling events are clear, and
- instruments(insnum >= 100) terminate immediately. If you call (stop 60) or (stop 'foo 'bar), specified instruments release."
-  (when (get-csound)
-    (if instrs (loop for synth in instrs do (csound-kill-instance (get-csound) (fltfy synth) (cffi:null-pointer) 0 1))
-      (progn
-	(tempo-clock-clear (get-csound-scheduler))
-	;; (dolist (synth (remove-if-not (lambda (instr) (>= instr 100)) *csound-all-instrs*))
-	;;   (csound-kill-instance (get-csound) (fltfy synth) (cffi:null-pointer) 0 0))
-	(dolist (hook *stop-hooks*)
-	  (funcall hook))))))
-
-
 (defun bpm (&optional new-bpm)
   (if new-bpm (tempo-clock-set-bpm (get-csound-scheduler) new-bpm)
     (tempo-clock-bpm (get-csound-scheduler))))
  
 
 
-;;;;;;;;;;;;;;;;;;;;;
-;;  scheduler API  ;;
-;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  compile orchestra  ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defgeneric fltfy (object)
   (:documentation "CsoundAPI use MYFLT type. This function convert from Lisp objects to MYFLT.
@@ -185,15 +172,11 @@
 (defmethod fltfy ((object symbol))
   (let ((insnum (gethash object *csound-instr-table*)))
     (if insnum (fltfy insnum)
-	(error "can't fltfy this symbol ~a" object))))
+      (error "can't fltfy this symbol ~a" object))))
 
 (defmethod fltfy ((object number))
   (coerce object *myflt*))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  compile orchestra  ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro csnd-binding (let letform &body body)
   "binding for csound's local variables. Don't use it directly. It use internal of slet,slet*."
@@ -375,3 +358,34 @@
 ;; 	   (unless ,keep-csd-file-p
 ;; 	     (delete-file ,tmp-csd-file)))))))
 
+
+
+(push
+ (lambda ()
+   (eval 
+    '(definstr monitor-synth (insnum)
+      (let* ((ival (active insnum)))
+	(prints "instr %d run instance: %d\\n" insnum ival)))))
+      *run-hooks*)
+
+
+(defun num-instance (name)
+  (instr 'monitor-synth (now) .1 (fltfy name)))
+
+
+(defun stop (&rest instrs)
+  "Stop function use to terminate instruments. If you just call (stop), all scheduling events are clear, and
+ instruments(insnum >= 100) terminate immediately. If you call (stop 60) or (stop 'foo 'bar), specified instruments release."
+  (flet ((kill-instr (name)
+	   (csound-performance-thread-compile-orc
+	    (get-csound-performance-thread)
+	    (format nil "turnoff2_i ~d, 0, 1" (floor (fltfy name))))))
+    (when (get-csound)
+      (if instrs (loop for inst in instrs
+		       do (kill-instr inst))
+	(progn
+	  (tempo-clock-clear (get-csound-scheduler))
+	  ;; (dolist (synth (remove-if-not (lambda (instr) (>= instr 100)) *csound-all-instrs*))
+	  ;;   (csound-kill-instance (get-csound) (fltfy synth) (cffi:null-pointer) 0 0))
+	  (dolist (hook *stop-hooks*)
+	    (funcall hook)))))))

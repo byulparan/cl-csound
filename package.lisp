@@ -33,6 +33,9 @@
 	   #:fltfy
 	   #:definstr
 	   #:instr
+
+	   #:stop
+	   #:num-instance
 	   
 	   #:global
 	   #:set!
@@ -65,7 +68,6 @@
 	   #:?
 	   #:load-sample
 	   #:proxy
-	   #:stop
 	   #:with-timout))
 
 
