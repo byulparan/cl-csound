@@ -35,45 +35,9 @@
 (defgeneric ir (ugen))
 ;;; (defgeneric fr (ugen))  ; <- is it need?
 
-(defparameter *csound-readtable* (copy-readtable *readtable*))
-(make-dispatch-macro-character #\k nil *csound-readtable*)
-(make-dispatch-macro-character #\a nil *csound-readtable*)
-(make-dispatch-macro-character #\i nil *csound-readtable*)
-
-;;; define macro-character
-(macrolet ((set-char-macro (char func)
-	     `(set-dispatch-macro-character
-	       ,char #\.
-	       (lambda (stream char1 char2)
-		 (declare (ignore char1 char2))
-		 (let ((first-char (read-char stream nil nil)))
-		   (if (char= first-char #\space) nil
-		       (unread-char first-char stream)))
-		 (let ((body-form (read stream nil nil)))
-		   (list ',func body-form)))
-	       *csound-readtable*)))
-  (set-char-macro #\k kr)
-  (set-char-macro #\a ar)
-  (set-char-macro #\i ir))
-
-(defun replace-body-on-cound-readtable (body)
-  (let* ((*readtable* *csound-readtable*))
-    (read-from-string
-     (ppcre:regex-replace-all
-       "I\\. "
-       (ppcre:regex-replace-all
-	"A\\. "
-	(ppcre:regex-replace-all
-	 "K\\. "
-	 (format nil "~s" body)
-	 "k.")
-	"a.")
-       "i."))))
-
 
 (defmacro global (&body form)
-  (let ((form (replace-body-on-cound-readtable form))
-	(opcode (gensym))
+  (let ((opcode (gensym))
 	(build-form (gensym)))
     `(let* ((*opcodes* nil)
 	    (*streams* (make-string-output-stream))
