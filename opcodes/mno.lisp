@@ -51,6 +51,7 @@
 (defopcode multitap ugen (asig &rest time-n-gain))
 (defopcode mute command (insnum &optional iwsitch))
 (defopcode mxadsr ugen (iatt idec islev irel &optional idel ireltim))
+(defopcode notnum ugen ())
 (defopcode nestedap ugen (asig imode imaxdel idel1 igain1 &optional idel2 igain2 idel3 igain3 istor))
 (defopcode nlfilt ugen (ain ka kb kd kc kl))
 (defopcode nlfilt2 ugen (ain ka kb kd kc kl))
