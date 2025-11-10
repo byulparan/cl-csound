@@ -33,7 +33,10 @@
 	   #:fltfy
 	   #:definstr
 	   #:instr
-
+	   #:ir
+	   #:kr
+	   #:ar
+	   
 	   #:stop
 	   #:num-instance
 	   
