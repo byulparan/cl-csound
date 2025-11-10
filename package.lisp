@@ -43,7 +43,8 @@
 	   #:global
 	   #:set!
 	   #:assign
-	   #:array
+	   #:fillarray
+	   #:fillarray*
 	   #:aget
 	   #:aset
 	   #:label

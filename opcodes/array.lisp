@@ -14,8 +14,11 @@
 	  (and (args opcode) (opt-args opcode))
 	  (mapcar #'get-form (opt-args opcode))))
 
-(defun array (&rest args)
-  (make-instance 'csnd-array :name "array" :args args))
+(defun fillarray (&rest args)
+  (make-instance 'csnd-array :name "fillarray" :args args))
+
+(defun fillarray* (lst)
+  (apply #'fillarray lst))
 
 (defun aget (array index)
   (unless (var array) (setf (var array) (make-unique-name *default-sigrate*)))
