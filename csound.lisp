@@ -64,8 +64,8 @@
   (defun run-csound (&key (sr 48000)
 		       (ksmps 64)
 		       (nchnls 2)
-		       (software-buffer-size 128)
-		       (hardware-buffer-size 512)
+		       software-buffer-size
+		       hardware-buffer-size
 		       (dac "dac")
 		       rtaudio
 		       rtmidi
@@ -90,8 +90,10 @@
 	 (csound-compile-orc csound (format nil "sr = ~d~%ksmps = ~d~%nchnls = ~d~%0dbfs = 1~%" sr ksmps nchnls) 0)
 	 (csound-set-option csound "--realtime")
 	 (csound-set-option csound (format nil "-o~a" dac))
-	 (csound-set-option csound (format nil "-b~d" software-buffer-size))
-	 (csound-set-option csound (format nil "-B~d" hardware-buffer-size))
+	 (when software-buffer-size
+	   (csound-set-option csound (format nil "-b~d" software-buffer-size)))
+	 (when hardware-buffer-size
+	   (csound-set-option csound (format nil "-B~d" hardware-buffer-size)))
 	 (when rtaudio
 	   (csound-set-option csound (format nil "-+rtaudio=~a" rtaudio)))
 	 (when (and rtmidi midi-device)
