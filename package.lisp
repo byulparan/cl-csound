@@ -3,6 +3,12 @@
 ;; 
 ;; 
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (named-readtables:defreadtable :csound
+    (:merge
+     :common-lisp)))
+
+
 (defpackage #:csound
   (:use #:cl)
   (:shadow #:array #:space)
@@ -78,5 +84,18 @@
 (defpackage #:csound-user
   (:use #:cl #:csound)
   (:shadow cl:array cl:space))
+
+
+(in-package :csound-user)
+(named-readtables:in-readtable :csound)
+
+
+;;; [1 2 3] == (list 1 2 3)
+(let ((rpar (get-macro-character #\))))
+  (set-macro-character #\] rpar)
+  (set-macro-character #\[ (lambda (stream char1)
+			     (declare (ignore char1))
+			     (apply (lambda (&rest rest) (cons 'list rest))
+				    (read-delimited-list #\] stream t)))))
 
 

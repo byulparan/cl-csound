@@ -7,6 +7,7 @@
   :serial t
   :depends-on (#:cffi
 	       #:cffi-libffi
+	       #:named-readtables
 	       #:bordeaux-threads
 	       #:trivial-main-thread
 	       #:float-features
