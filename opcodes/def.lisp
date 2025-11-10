@@ -76,7 +76,7 @@
 (defopcode flooper2 ugen (kamp kpitch kloopstart kloopend kcrossfade ifn &optional istart imode ifenv iskip))
 (defopcode floor~ func (x) "floor")
 (defopcode fmb3 ugen (kamp kfreq kc1 kc2 kvdepth kvrte ifn1 ifn2 ifn3 ifn4 ivfn))
-(defopcode fmbell ugen (kamp kfreq kc1 kc2 kvdepth kvrate ifn1 ifn2 ifn3 ifn4 ivfn &optional isus))
+(defopcode fmbell ugen (kamp kfreq kc1 kc2 kvdepth kvrate &optional ifn1 ifn2 ifn3 ifn4 ivfn isus))
 (defopcode fmmetal ugen (kamp kfreq kc1 kc2 kvdepth kvrate ifn1 ifn2 ifn3 ifn4 ivfn))
 (defopcode fmpercfl ugen (kamp kfreq kc1 kc2 kvdepth kvrate ifn1 ifn2 ifn3 ifn4 ivfn))
 (defopcode fmrhode ugen (kamp kfreq kc1 kc2 kvdepth kvrate ifn1 ifn2 ifn3 ifn4 ivfn))

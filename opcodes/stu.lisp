@@ -1,7 +1,7 @@
 (in-package #:csound)
 (defopcode samphold ugen (asig agate &optional ival ivstor))
 (defopcode sandpaper ugen (iamp idettack &optional inum idamp imaxshake))
-(defopcode scale ugen (kinput kmax kmin))
+(defopcode scale ugen (kinput kmax kmin &optional kimax kimin))
 (defopcode scalearray command (tarray kmin kmax &optional kleft kright))
 (defopcode scanhammer command (isrc idst ipos imult))
 (defopcode scans ugen (kamp kfreq ifn id &optional iorder))
