@@ -96,8 +96,9 @@
 	   (csound-set-option csound (format nil "-B~d" hardware-bufsize)))
 	 (when rtaudio
 	   (csound-set-option csound (format nil "-+rtaudio=~a" rtaudio)))
-	 (when (and rtmidi midi-device)
-	   (csound-set-option csound (format nil "-+rtmidi=~a" rtmidi))
+	 (when rtmidi 
+	   (csound-set-option csound (format nil "-+rtmidi=~a" rtmidi)))
+	 (when midi-device
 	   (csound-set-option csound (format nil "-M~d" midi-device)))
 	 (csound-start csound)
 	 (csound-performance-thread-play csound-performance-thread)
