@@ -193,7 +193,7 @@
     (assert (rate opcode) nil "ambigous rate of ugen ~s. in actually Csound maybe allow it. but cl-csound require specifier accurately ugen's rate." (name opcode))
     (format *streams* "~&  ~{~a~^,~} = ~a( ~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~} )"
 	    (alexandria:ensure-list (var opcode))
-	    (format nil "~a:~a" (name opcode) (rate opcode))
+	    (format nil "~a" (name opcode))
 	    (mapcar #'get-form (args opcode))
 	    (and (args opcode) (opt-args opcode))
 	    (mapcar #'get-form (opt-args opcode)))))
