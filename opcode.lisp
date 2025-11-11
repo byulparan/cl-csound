@@ -5,7 +5,7 @@
 
 (in-package :csound)
 
-;;; dynamic variable for definition instruments. ------------------
+
 (defvar *default-sigrate* :ar)
 
 (let ((number 0))
@@ -36,6 +36,11 @@
 ;;; (defgeneric fr (ugen))  ; <- is it need?
 
 
+
+;;;;;;;;;;;;;;
+;;  global  ;;
+;;;;;;;;;;;;;;
+
 (defmacro global (&body form)
   (let ((opcode (gensym))
 	(build-form (gensym)))
@@ -57,7 +62,11 @@
 		   ,build-form))))
        ,opcode)))
 
-;;; ----------------------------------------------------------------
+
+
+;;;;;;;;;;;;;;
+;;  assign  ;;
+;;;;;;;;;;;;;;
 
 (defun set! (ugen value &rest ugens)
   (car
@@ -70,13 +79,17 @@
 (defun assign (value)
   (make-instance 'ugen :name "=" :args (list value)))
 
-;;; ----------------------------------------------------------------
+
+
+;;;;;;;;;;;;;;
+;;  opcode  ;;
+;;;;;;;;;;;;;;
 
 (defclass opcode ()
-  ((args :initarg :args :initform nil :reader args)
-   (opt-args :initarg :opt-args :initform nil :reader opt-args)
+  ((name :initarg :name :reader name)
    (var :initarg :var :initform nil :reader var)
-   (name :initarg :name :reader name)))
+   (args :initarg :args :initform nil :reader args)
+   (opt-args :initarg :opt-args :initform nil :reader opt-args)))
 
 (defmethod initialize-instance :after ((self opcode) &key)
   (when (boundp '*opcodes*)
@@ -135,14 +148,24 @@
 (defmethod build ((opcode number))
   opcode)
 
-;;; 
+
+
+;;;;;;;;;;;;;
+;;  param  ;;
+;;;;;;;;;;;;;
+
 (defclass param (opcode)
   ())
 
 (defmethod build ((opcode param))
   (format *streams* "~&~a~20t=~31t~10a" (var opcode) (name opcode)))
 
-;;; 
+
+
+;;;;;;;;;;;;
+;;  ugen  ;;
+;;;;;;;;;;;;
+
 (defclass ugen (opcode)
   ((rate :initarg :rate :initform *default-sigrate* :accessor rate)))
 
@@ -190,8 +213,10 @@
 
 
 
+;;;;;;;;;;;;;;;
+;;  command  ;;
+;;;;;;;;;;;;;;;
 
-;;; 
 (defclass command (opcode)
   ())
 
@@ -206,13 +231,22 @@
 	  (and (args opcode) (opt-args opcode))
 	  (mapcar #'(lambda (op) (when op (get-form op))) (opt-args opcode))))
 
+;;;;;;;;;;;;;
+;;  label  ;;
+;;;;;;;;;;;;;
+
 (defclass label (command)
   ())
 
 (defmethod build ((opcode label))
   (format *streams* "~&~a:" (name opcode)))
 
-;;; 
+
+
+;;;;;;;;;;;;
+;;  func  ;;
+;;;;;;;;;;;;
+
 (defclass func (opcode)
   ())
 
@@ -224,7 +258,10 @@
   (when (var opcode)
     (format *streams* "~&~20a=~31t~a(~{~a~^,  ~})" (var opcode) (name opcode) (mapcar #'get-form (args opcode)))))
 
-;;; 
+
+;;;;;;;;;;;;;;;;
+;;  operator  ;;
+;;;;;;;;;;;;;;;;
 
 (defclass operator (opcode)
   ())
@@ -248,6 +285,7 @@
 	 (format str "~@[~a ~]~a " (if x (get-form x)) (name opcode)))
        (format str "~a" (get-form (car (last (args opcode)))))))))
 
+
 (defclass 3r-operator (operator)
   ((2nd-op :initarg :2nd-op :reader 2nd-op)))
 
@@ -269,7 +307,13 @@
 	   (args opcode)
 	 (format str "~a ~a ~a ~a ~a" (get-form a) (name opcode) (get-form b) (2nd-op opcode) (get-form c)))))))
 
-;;; 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;
+;;  define-opcode  ;;
+;;;;;;;;;;;;;;;;;;;;;
+
 (defmacro defopcode (name type args &optional (op-name (string-downcase name)))
   (let* ((delimiter (find-if #'(lambda (arg)(or (eql arg '&optional) (eql arg '&rest))) args))
 	 (parse-args (split-sequence:split-sequence delimiter args)))
