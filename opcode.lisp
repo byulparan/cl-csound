@@ -83,6 +83,11 @@
   (when (boundp '*opcodes*)
     (push self *opcodes*)))
 
+
+
+;; 
+;; var - opcode 를 저장하는 변수 이름
+;; 
 (defmethod (setf var) (name (opcode opcode))
   (if (var opcode) (set! (alexandria:make-keyword (string-upcase name)) opcode)
       (with-slots (var) opcode
@@ -101,6 +106,10 @@
   (declare (ignore name))
   opcode)
 
+
+;;
+;; get-form - opcode 가 다른 옵코드나 함수의 인자로 들어갈때 보여지는 이름
+;; 
 (defmethod get-form ((arg opcode))
   (var arg))
 
@@ -121,6 +130,11 @@
 (defmethod get-form ((arg symbol))
   (if (keywordp arg) (ppcre:regex-replace-all "-" (string-downcase arg) "_")
       (get-form (fltfy arg))))
+
+
+;;
+;; build - opcode 가 실제 코드 상에 어떻게 표기 될 것인가
+;; 
 
 (defmethod build :before ((opcode opcode))
   (alexandria:when-let ((names (alexandria:ensure-list (var opcode))))
@@ -159,8 +173,7 @@
   ())
 
 (defmethod build ((opcode param))
-  (format *streams* "~&~a~20t=~31t~10a" (var opcode) (name opcode)))
-
+  (format *streams* "~&  ~a~20t=~31t~10a" (var opcode) (name opcode)))
 
 
 ;;;;;;;;;;;;
@@ -168,38 +181,47 @@
 ;;;;;;;;;;;;
 
 (defclass ugen (opcode)
-  ((rate :initarg :rate :initform *default-sigrate* :accessor rate)))
+  ((rate :initarg :rate :initform nil :accessor rate)))
 
 
 (defmethod get-form ((opcode ugen))
-  (unless (var opcode) (setf (var opcode) (make-unique-name (rate opcode))))
-  (var opcode))
+  (if (var opcode) (var opcode)
+    (format nil "~a(~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~})"
+	    (if (rate opcode) (format nil "~a:~a" (name opcode) (rate opcode))
+	      (name opcode))
+	    (mapcar #'get-form (args opcode))
+ 	    (and (args opcode) (opt-args opcode))
+	    (mapcar #'get-form (opt-args opcode)))))
+
 
 (defmethod build ((opcode ugen))
-  (unless (var opcode) (setf (var opcode) (make-unique-name (rate opcode))))
-  (format *streams* "~&~{~a~^,~}~20t~10a ~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~}"
-	  (alexandria:ensure-list (var opcode))
-	  (name opcode)
-	  (mapcar #'get-form (args opcode))
-	  (and (args opcode) (opt-args opcode))
-	  (mapcar #'get-form (opt-args opcode))))
+  (when (var opcode)
+    (format *streams* "~&  ~{~a~^,~} = ~a( ~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~} )"
+	    (alexandria:ensure-list (var opcode))
+	    (name opcode)
+	    (mapcar #'get-form (args opcode))
+	    (and (args opcode) (opt-args opcode))
+	    (mapcar #'get-form (opt-args opcode)))))
+
 
 (defmethod ar ((ugen ugen))
-  (unless (eql *default-sigrate* :ar)
-    (setf (var ugen) (make-unique-name :ar)))
+  (setf (rate ugen) "a")
   ugen)
 
 (defmethod kr ((ugen ugen))
-  (unless (eql *default-sigrate* :kr)
-    (setf (var ugen) (make-unique-name :kr)))
+  (setf (rate ugen) "k")
   ugen)
 
 (defmethod ir ((ugen ugen))
-  (unless (eql *default-sigrate* :ir)
-    (setf (var ugen) (make-unique-name :ir)))
+  (setf (rate ugen) "i")
   ugen)
 
-;;;
+
+
+;;;;;;;;;;;;;;;;;;
+;;  GenRoutine  ;;
+;;;;;;;;;;;;;;;;;;
+
 (defclass gen-routine (ugen)
   ((rate :initform :ir :reader rate)
    (ifn :initarg :ifn :reader ifn)
