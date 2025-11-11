@@ -317,14 +317,15 @@
 
 (defun instr (name beat dur &rest args)
   (let* ((insnum (fltfy name))
+	 (args (remove-if #'keywordp args))
 	 (len (length args)))
     (if (not *render-stream*)
 	(cffi:with-foreign-objects ((p-field 'myflt (+ len 3)))
-	  (setf (cffi:mem-aref p-field 'myflt 0) (coerce insnum *myflt*)
+	  (setf (cffi:mem-aref p-field 'myflt 0) (fltfy insnum)
 		(cffi:mem-aref p-field 'myflt 1) (fltfy (beats-to-secs (get-csound-scheduler) beat))
-		(cffi:mem-aref p-field 'myflt 2) (coerce dur *myflt*))
+		(cffi:mem-aref p-field 'myflt 2) (fltfy (* dur (/ 60.0 (bpm)))))
 	  (dotimes (i len)
-	    (setf (cffi:mem-aref p-field 'myflt (+ i 3)) (coerce (nth i args) *myflt*)))
+	    (setf (cffi:mem-aref p-field 'myflt (+ i 3)) (fltfy (nth i args))))
 	  (csound-performance-thread-score-event (get-csound-performance-thread) 1 (char-code #\i) (+ len 3) p-field))
       (format *render-stream* "~&i~d  ~10,3f  ~10,3f~{  ~10,3f~}" (floor insnum) beat dur args))))
 
