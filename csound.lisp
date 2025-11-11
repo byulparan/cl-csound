@@ -186,14 +186,11 @@
   (let* ((names nil))
     `(,let ,(mapcan (lambda (pair)
 		      (destructuring-bind (name form) pair
-			(if (atom name) (list `(,name (with-sigrate-by-name (,name)
-							(setf (var ,form) ,(string-downcase name)))))
+			(if (atom name) (list `(,name (setf (var ,form) ,(string-downcase name))))
 			      (let ((varnames (intern (string-upcase (format nil "~{~a~^_~}" name)))))
 				(push varnames names)
 				(append
-				 `((,varnames
-				    (with-sigrate-by-name (,varnames)
-				      (setf (var ,form) ,(cons 'list (mapcar #'string-downcase name))))))
+				 `((,varnames (setf (var ,form) ,(cons 'list (mapcar #'string-downcase name)))))
 				 (loop for n in name
 				       do (push n names)
 				       collect (list n (alexandria:make-keyword n))))))))

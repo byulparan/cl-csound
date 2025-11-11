@@ -22,13 +22,6 @@
 	     (:fr "f")))
 	  (get-unique-number)))
 
-(defmacro with-sigrate-by-name ((name) &body body)
-  `(let ((*default-sigrate* ,(case (aref (string-downcase name) 0)
-			       (#\a :ar)
-			       (#\k :kr)
-			       (#\i :ir)
-			       (#\f :fr))))
-     ,@body))
 
 (defgeneric ar (ugen))
 (defgeneric kr (ugen))
