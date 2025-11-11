@@ -360,6 +360,7 @@
 	`(format *render-stream* "t 0 ~a~%~%" (float ,bpm 1.0)))
      (let* ((*pad* ,pad))
        ,@body)
+     (format *render-stream* "~&~%e ~a~%" ,pad)
      (terpri *render-stream*)
      (terpri *render-stream*)
      (format *render-stream* "</CsScore>~%")
