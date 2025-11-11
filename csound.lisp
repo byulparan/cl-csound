@@ -69,7 +69,7 @@
 		       (dac "dac")
 		       rtaudio
 		       rtmidi
-		       (midi-device 0)
+		       midi-device
 		       (message-level +warning-messages+))
     "Bootup csound engine and initialize to many global variables.
  cl-csound only support one csound instance. 0dbfs set 1."
