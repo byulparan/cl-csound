@@ -50,6 +50,8 @@
   "cl-csound support realtime, rendering both. in rendering mode, you will create csd file.
  This special variable is stored that csd file's stream.")
 
+(defvar *pad* nil)
+
 (defvar *channels*)
 
 
@@ -150,11 +152,16 @@
 
 
 (defun clock-add (beat function &rest args)
-  (tempo-clock-add (get-csound-scheduler) beat (lambda () (apply function args))))
+  (if (not *render-stream*)
+      (tempo-clock-add (get-csound-scheduler) beat (lambda () (apply function args)))
+    (when (< beat *pad*)
+      (apply function args))))
 
 
 (defun clock-quant (quant)
-  (tempo-clock-quant (get-csound-scheduler) quant))
+  (if (not *render-stream*)
+      (tempo-clock-quant (get-csound-scheduler) quant)
+    quant))
 
 
 (defun bpm (&optional new-bpm)
@@ -307,55 +314,52 @@
 (defun instr (name beat dur &rest args)
   (let* ((insnum (fltfy name))
 	 (len (length args)))
-    (cffi:with-foreign-objects ((p-field 'myflt (+ len 3)))
-      (setf (cffi:mem-aref p-field 'myflt 0) (coerce insnum *myflt*)
-	    (cffi:mem-aref p-field 'myflt 1) (fltfy (beats-to-secs (get-csound-scheduler) beat))
-	    (cffi:mem-aref p-field 'myflt 2) (coerce dur *myflt*))
-      (dotimes (i len)
-	(setf (cffi:mem-aref p-field 'myflt (+ i 3)) (coerce (nth i args) *myflt*)))
-      (csound-performance-thread-score-event (get-csound-performance-thread) 1 (char-code #\i) (+ len 3) p-field))))
+    (if (not *render-stream*)
+	(cffi:with-foreign-objects ((p-field 'myflt (+ len 3)))
+	  (setf (cffi:mem-aref p-field 'myflt 0) (coerce insnum *myflt*)
+		(cffi:mem-aref p-field 'myflt 1) (fltfy (beats-to-secs (get-csound-scheduler) beat))
+		(cffi:mem-aref p-field 'myflt 2) (coerce dur *myflt*))
+	  (dotimes (i len)
+	    (setf (cffi:mem-aref p-field 'myflt (+ i 3)) (coerce (nth i args) *myflt*)))
+	  (csound-performance-thread-score-event (get-csound-performance-thread) 1 (char-code #\i) (+ len 3) p-field))
+      (format *render-stream* "~&i~d  ~10,3f  ~10,3f~{  ~10,3f~}" (floor insnum) beat dur args))))
 
 
 
 
-;; (defmacro with-render ((output-filename &key (sr 44100) (ksmps 10) (chnls 2) pad keep-csd-file-p) &body body)
-;;   "Make csound csd file from your lisp code. then rendering that file."
-;;   (alexandria:with-gensyms (tmp-csd-file)
-;;     `(progn
-;;        (unless (or ,body ,pad) (error "nothing csound score event!"))
-;;        (let ((cb::*scheduling-mode* :step)
-;; 	     (,tmp-csd-file (make-pathname :directory (pathname-directory ,output-filename)
-;; 					   :name (pathname-name ,output-filename)
-;; 					   :type "csd")))
-;; 	 (unwind-protect (progn
-;; 			   (with-open-file (*render-stream* ,tmp-csd-file
-;; 							    :direction :output
-;; 							    :if-exists :supersede)
-;; 			     (format *render-stream* "<CsoundSynthesizer>~%")
-;; 			     (format *render-stream* "<CsInstruments>~%~%")
-;; 			     (format *render-stream* "sr = ~d~%" ,sr)
-;; 			     (format *render-stream* "ksmps = ~d~%" ,ksmps)
-;; 			     (format *render-stream* "nchnls = ~d~%" ,chnls)
-;; 			     (format *render-stream* "0dbfs = 1~%~%")
-;; 			     (dolist (var (alexandria:hash-table-values *csound-global-variables*))
-;; 			       (format *render-stream* "~a~%" var))
-;; 			     (terpri *render-stream*)
-;; 			     (dolist (orc (alexandria:hash-table-values *csound-orchestra*))
-;; 			       (format *render-stream* "~a~%~%" orc))
-;; 			     (terpri *render-stream*)
-;; 			     (format *render-stream* "</CsInstruments>~%")
-;; 			     (format *render-stream* "<CsScore>~%")
-;; 			     ,@body
-;; 			     (terpri *render-stream*)
-;; 			     (when ,pad
-;; 			       (format *render-stream* "e ~f" ,pad))
-;; 			     (terpri *render-stream*)
-;; 			     (format *render-stream* "</CsScore>~%")
-;; 			     (format *render-stream* "</CsoundSynthesizer>~%"))
-;; 			   (uiop/run-program:run-program (format nil "csound -o ~a ~a" ,output-filename ,tmp-csd-file)
-;; 							 :output t :error-output t))
-;; 	   (unless ,keep-csd-file-p
-;; 	     (delete-file ,tmp-csd-file)))))))
+(defmacro with-render ((output-file &key (sr 48000) (ksmps 64) (nchnls 2) (output "dac") pad (bpm (bpm))) &body body)
+  `(with-open-file (*render-stream* ,output-file
+				    :direction :output
+				    :if-exists :supersede)
+     (format *render-stream* "<CsoundSynthesizer>~%")
+     (format *render-stream* "<CsOptions>~%")
+     (format *render-stream* (format nil "-o~a~%" ,output))
+     (format *render-stream* "</CsOptions>~%")
+     (format *render-stream* "<CsInstruments>~%~%")
+     (format *render-stream* "sr = ~d~%" ,sr)
+     (format *render-stream* "ksmps = ~d~%" ,ksmps)
+     (format *render-stream* "nchnls = ~d~%" ,nchnls)
+     (format *render-stream* "0dbfs = 1~%~%~%")
+     (dolist (var (alexandria:hash-table-values *csound-global-variables*))
+       (format *render-stream* "~a~%" (string-left-trim '(#\space) var)))
+     (terpri *render-stream*)
+     (terpri *render-stream*)
+     (dolist (orc (sort (alexandria:hash-table-values *csound-orchestra*) #'<
+			:key (lambda (src)
+			       (parse-integer (aref (second (multiple-value-list (ppcre:scan-to-strings "instr (.+)" src))) 0)))))
+       (format *render-stream* "~a~%~%~%" orc))
+     (terpri *render-stream*)
+     (terpri *render-stream*)
+     (format *render-stream* "</CsInstruments>~%")
+     (format *render-stream* "<CsScore>~%")
+     ,(when body
+	`(format *render-stream* "t 0 ~a~%~%" (float ,bpm 1.0)))
+     (let* ((*pad* ,pad))
+       ,@body)
+     (terpri *render-stream*)
+     (terpri *render-stream*)
+     (format *render-stream* "</CsScore>~%")
+     (format *render-stream* "</CsoundSynthesizer>~%")))
 
 
 
