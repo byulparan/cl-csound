@@ -61,16 +61,11 @@
 ;;  assign  ;;
 ;;;;;;;;;;;;;;
 
-(defun set! (ugen value &rest ugens)
-  (car
-   (last
-    (cons
-     (make-instance 'ugen :name "=" :args (list value) :var (get-form ugen))
-     (loop for (u v) on ugens by #'cddr
-	   collect (make-instance 'ugen :name "=" :args (list v) :var (get-form u)))))))
+(defun set! (name value)
+  (make-instance 'assign  :var (get-form name) :args value))
 
-(defun assign (value)
-  (make-instance 'ugen :name "=" :args (list value)))
+
+
 
 
 
@@ -141,6 +136,19 @@
 (defmethod build ((opcode number))
   opcode)
 
+
+
+
+;;;;;;;;;;;;;;
+;;  assign  ;;
+;;;;;;;;;;;;;;
+
+(defclass assign (opcode)
+  ())
+
+
+(defmethod build ((opcode assign))
+  (format *streams* "~&  ~a = ~a" (var opcode) (get-form (args opcode))))
 
 
 ;;;;;;;;;;;;;
