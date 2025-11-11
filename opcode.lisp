@@ -248,7 +248,7 @@
   opcode)
 
 (defmethod build ((opcode command))
-  (format *streams* "~&~20t~10a ~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~}"
+  (format *streams* "~&  ~a( ~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~} )"
 	  (name opcode)
 	  (mapcar #'get-form (args opcode))
 	  (and (args opcode) (opt-args opcode))
@@ -279,7 +279,7 @@
 
 (defmethod build ((opcode func))
   (when (var opcode)
-    (format *streams* "~&~20a=~31t~a(~{~a~^,  ~})" (var opcode) (name opcode) (mapcar #'get-form (args opcode)))))
+    (format *streams* "~&  ~a = ~a(~{~a~^,  ~})" (var opcode) (name opcode) (mapcar #'get-form (args opcode)))))
 
 
 ;;;;;;;;;;;;;;;;
