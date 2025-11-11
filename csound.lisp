@@ -187,13 +187,13 @@
     `(,let ,(mapcan (lambda (pair)
 		      (destructuring-bind (name form) pair
 			(if (atom name) (list `(,name (setf (var ,form) ,(string-downcase name))))
-			      (let ((varnames (intern (string-upcase (format nil "~{~a~^_~}" name)))))
-				(push varnames names)
-				(append
-				 `((,varnames (setf (var ,form) ,(cons 'list (mapcar #'string-downcase name)))))
-				 (loop for n in name
-				       do (push n names)
-				       collect (list n (alexandria:make-keyword n))))))))
+			  (let ((varnames (intern (string-upcase (format nil "~{~a~^_~}" name)))))
+			    (push varnames names)
+			    (append
+			     `((,varnames (setf (var ,form) ,(cons 'list (mapcar #'string-downcase name)))))
+			     (loop for n in name
+				   do (push n names)
+				   collect (list n (alexandria:make-keyword n))))))))
 	     letform)
        (declare (ignorable ,@names))
        ,@body)))
@@ -211,10 +211,10 @@
  This function make that duration parameter then binding to local variables idur."
   (let ((count 3))
     `(let ,(mapcar (lambda (name)
-		      (list name
-			    `(make-instance 'param :name ,(format nil "p~d" (incf count))
-						   :var ,(string-downcase (format nil "~a" name)))))
-		    params)
+		     (list name
+			   `(make-instance 'param :name ,(format nil "p~d" (incf count))
+					   :var ,(string-downcase (format nil "~a" name)))))
+	    params)
        (declare (ignorable ,@params))
        ,@body)))
 

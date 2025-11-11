@@ -14,12 +14,7 @@
 
 (defun make-unique-name (sig-rate)
   (format nil "~a_~a"
-	  (alexandria:make-gensym
-	   (ecase sig-rate
-	     (:ar "a")
-	     (:kr "k")
-	     (:ir "i")
-	     (:fr "f")))
+	  (alexandria:make-gensym sig-rate)
 	  (get-unique-number)))
 
 
@@ -42,9 +37,13 @@
 	    (,opcode ,@form))
        (when (typep ,opcode 'ugen)
 	 (with-slots (var) ,opcode
-	   (setf var (concatenate 'string "g" (if var var (make-unique-name (rate ,opcode)))))))
+	   (setf var (concatenate 'string "g" (if var var
+						(let* ((rate (rate ,opcode)))
+						  (make-unique-name (if rate rate "a"))))))))
        (build ,opcode)
        (let ((,build-form (get-output-stream-string *streams*)))
+	 (when (or *debug-mode* (not (get-csound)))
+	   (print ,build-form))
        	 (when (get-csound)
 	   (when (or (zerop (length ,build-form))
 		     (not (zerop (csound-compile-orc (get-csound) ,build-form 0))))
@@ -63,9 +62,6 @@
 
 (defun set! (name value)
   (make-instance 'assign  :var (get-form name) :args value))
-
-
-
 
 
 
@@ -223,7 +219,7 @@
 ;;;;;;;;;;;;;;;;;;
 
 (defclass gen-routine (ugen)
-  ((rate :initform :ir :reader rate)
+  ((rate :initform "i" :reader rate)
    (ifn :initarg :ifn :reader ifn)
    (chanls :initform 1 :accessor chanls)))
 
