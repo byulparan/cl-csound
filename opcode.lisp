@@ -169,7 +169,7 @@
   ())
 
 (defmethod build ((opcode param))
-  (format *streams* "~&  ~a~20t=~31t~10a" (var opcode) (name opcode)))
+  (format *streams* "~&  ~a = ~a" (var opcode) (name opcode)))
 
 
 ;;;;;;;;;;;;
@@ -299,7 +299,7 @@
      *streams*
      "~&~a"
      (with-output-to-string (str)
-       (format str "~20a=~31t" (var opcode))
+       (format str "  ~a = " (var opcode))
        (dolist (x (butlast (args opcode)))
 	 (format str "~@[~a ~]~a " (if x (get-form x)) (name opcode)))
        (format str "~a" (get-form (car (last (args opcode)))))))))
@@ -321,7 +321,7 @@
      *streams*
      "~&~a"
      (with-output-to-string (str)
-       (format str "~20a=~31t" (var opcode))
+       (format str " ~a = " (var opcode))
        (destructuring-bind (a b c)
 	   (args opcode)
 	 (format str "~a ~a ~a ~a ~a" (get-form a) (name opcode) (get-form b) (2nd-op opcode) (get-form c)))))))
