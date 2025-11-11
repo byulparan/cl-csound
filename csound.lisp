@@ -370,9 +370,10 @@
 (push
  (lambda ()
    (eval 
-    '(definstr monitor-synth (insnum)
-      (let* ((ival (active insnum)))
-	(prints "instr %d run instance: %d\\n" insnum ival)))))
+    '(let* ((*pushed-orchestra-p* nil))
+      (definstr monitor-synth (insnum)
+	(let* ((ival (active insnum)))
+	  (prints "instr %d run instance: %d\\n" insnum ival))))))
       *run-hooks*)
 
 
