@@ -51,6 +51,7 @@
  This special variable is stored that csd file's stream.")
 
 (defvar *pad* nil)
+(defvar *default-ugen-rate* nil)
 
 (defvar *channels*)
 
@@ -193,14 +194,17 @@
   (let* ((names nil))
     `(,let ,(mapcan (lambda (pair)
 		      (destructuring-bind (name form) pair
-			(if (atom name) (list `(,name (setf (var ,form) ,(string-downcase name))))
+			(if (atom name) (list `(,name (let* ((*default-ugen-rate* (subseq (string-downcase ',name) 0 1)))
+							(setf (var ,form) ,(string-downcase name)))))
 			  (let ((varnames (intern (string-upcase (format nil "~{~a~^_~}" name)))))
 			    (push varnames names)
 			    (append
-			     `((,varnames (setf (var ,form) ,(cons 'list (mapcar #'string-downcase name)))))
+			     `((,varnames (let* ((*default-ugen-rate* (subseq (string-downcase ',varnames) 0 1)))
+					    (setf (var ,form) ,(cons 'list (mapcar #'string-downcase name))))))
 			     (loop for n in name
 				   do (push n names)
-				   collect (list n (alexandria:make-keyword n))))))))
+				   collect (list n (alexandria:make-keyword n))))))
+			))
 	     letform)
        (declare (ignorable ,@names))
        ,@body)))

@@ -6,8 +6,6 @@
 (in-package :csound)
 
 
-(defvar *default-sigrate* :ar)
-
 (let ((number 0))
   (defun get-unique-number ()
     (incf number)))
@@ -34,16 +32,16 @@
 	(build-form (gensym)))
     `(let* ((*opcodes* nil)
 	    (*streams* (make-string-output-stream))
+	    (*default-ugen-rate* "a")
 	    (,opcode ,@form))
        (when (typep ,opcode 'ugen)
 	 (with-slots (var) ,opcode
 	   (setf var (concatenate 'string "g" (if var var
-						(let* ((rate (rate ,opcode)))
-						  (make-unique-name (if rate rate "a"))))))))
+						(make-unique-name (rate ,opcode)))))))
        (build ,opcode)
        (let ((,build-form (get-output-stream-string *streams*)))
 	 (when (or *debug-mode* (not (get-csound)))
-	   (print ,build-form))
+	   (print (string-left-trim '(#\space) ,build-form)))
        	 (when (get-csound)
 	   (when (or (zerop (length ,build-form))
 		     (not (zerop (csound-compile-orc (get-csound) ,build-form 0))))
@@ -177,7 +175,7 @@
 ;;;;;;;;;;;;
 
 (defclass ugen (opcode)
-  ((rate :initarg :rate :initform nil :accessor rate)))
+  ((rate :initarg :rate :initform *default-ugen-rate* :accessor rate)))
 
 
 (defmethod get-form ((opcode ugen))
