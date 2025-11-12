@@ -45,6 +45,7 @@
 	   
 	   #:stop
 	   #:num-instance
+	   #:all-instances
 	   
 	   #:global
 	   #:set!

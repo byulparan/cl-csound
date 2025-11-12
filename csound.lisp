@@ -387,6 +387,12 @@
   (instr 'monitor-synth (now) .1 (fltfy name)))
 
 
+(defun all-instances ()
+  (dolist (instr *csound-all-instrs*)
+    (num-instance instr)))
+
+
+
 (defun stop (&rest instrs)
   "Stop function use to terminate instruments. If you just call (stop), all scheduling events are clear, and
  instruments(insnum >= 100) terminate immediately. If you call (stop 60) or (stop 'foo 'bar), specified instruments release."
