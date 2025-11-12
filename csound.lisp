@@ -72,7 +72,8 @@
 		       (dac "dac")
 		       rtaudio
 		       rtmidi
-		       midi-device
+		       midi-in-device
+		       midi-out-device
 		       (message-level +warning-messages+))
     "Bootup csound engine and initialize to many global variables.
  cl-csound only support one csound instance. 0dbfs set 1."
@@ -101,8 +102,10 @@
 	   (csound-set-option csound (format nil "-+rtaudio=~a" rtaudio)))
 	 (when rtmidi 
 	   (csound-set-option csound (format nil "-+rtmidi=~a" rtmidi)))
-	 (when midi-device
-	   (csound-set-option csound (format nil "-M~d" midi-device)))
+	 (when midi-in-device
+	   (csound-set-option csound (format nil "-M~d" midi-in-device)))
+	 (when midi-out-device
+	   (csound-set-option csound (format nil "-Q~d" midi-out-device)))
 	 (csound-start csound)
 	 (csound-performance-thread-play csound-performance-thread)
 	 (setf csound-scheduler (make-instance 'tempo-clock 
