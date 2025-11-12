@@ -375,8 +375,9 @@
 (push
  (lambda ()
    (eval 
-    '(let* ((*pushed-orchestra-p* nil))
-      (definstr monitor-synth (insnum)
+    '(let* ((*pushed-orchestra-p* nil)
+	    (*csound-all-instrs*))
+      (definstr (monitor-synth *csound-instr-count*) (insnum)
 	(let* ((ival (active insnum)))
 	  (prints "instr %d run instance: %d\\n" insnum ival))))))
       *run-hooks*)
