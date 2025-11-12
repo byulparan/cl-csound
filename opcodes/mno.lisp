@@ -56,6 +56,7 @@
 (defopcode nlfilt ugen (ain ka kb kd kc kl))
 (defopcode nlfilt2 ugen (ain ka kb kd kc kl))
 (defopcode noise ugen (xamp kbeta))
+(defopcode noteondur command (ichn inum ivel idur))
 ;;; noteoff....
 (defopcode nreverb ugen (asig ktime khdif &optional iskip inumcombs ifncombs inumalpas ifnalpas))
 (defopcode nsamp func (x))
