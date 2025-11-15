@@ -38,5 +38,5 @@
 	       (:file "opcodes/stu")
 	       (:file "opcodes/vwxyz")
 	       (:file "extensions/extensions")
-	       (:file "extensions/util")
 	       (:file "extensions/pc")))
+
