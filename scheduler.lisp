@@ -122,7 +122,10 @@
 
 (defmethod initialize-instance :after ((self tempo-clock) &key)
   (with-slots (mutex in-queue bpm base-beats beat-dur base-seconds) self
-    (setf mutex (slot-value in-queue 'pileup::lock))
+    (setf mutex
+      #-(or ecl lispworks) (slot-value in-queue 'pileup::lock)
+      #+ecl (bt:make-lock)
+      #+lispworks (bt:make-recursive-lock))
     (setf beat-dur (/ 60.0d0 bpm)
 	  base-seconds (funcall (timestamp self)))))
 
