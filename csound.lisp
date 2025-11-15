@@ -394,7 +394,7 @@
 
 
 (defun all-instances ()
-  (dolist (instr *csound-all-instrs*)
+  (dolist (instr (sort *csound-all-instrs* #'<))
     (num-instance instr)))
 
 
