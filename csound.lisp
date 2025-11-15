@@ -67,7 +67,7 @@
   (defun run-csound (&key (sr 48000)
 		       (ksmps 64)
 		       (nchnls 2)
-		       (software-bufsize -16)
+		       software-bufsize
 		       hardware-bufsize
 		       (dac "dac")
 		       rtaudio
