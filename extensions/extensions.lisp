@@ -89,8 +89,8 @@
 
 
 (defmacro schedule (name (quant &key (ahead 0) (count #+(or ccl lispworks) 1F++0
-						      +sbcl sb-ext:single-float-positive-infinity
-						      #+ecl ext:single-float-positive-infinity)) &optional function)
+						      #+sbcl sb-ext:double-float-positive-infinity
+						      #+ecl ext:double-float-positive-infinity)) &optional function)
   (alexandria:with-gensyms (func execute next-time sched-time obj sched-obj q-time sym-beat sym-dur sym-count body-fun halt)
     `(let* ((,halt t))
        (flet ((,(alexandria:symbolicate "SCHED-STOP") ()
