@@ -4,6 +4,11 @@
 ;; 
 
 (asdf/defsystem:defsystem #:cl-csound
+  :name "cl-csound"
+  :author "Sungmin Park. byulparan@gmail.com"
+  :description "Binding Csound7 API for Common Lisp"
+  :licence "Public Domain / 0-clause MIT"
+  :version "2025.11.15"
   :serial t
   :depends-on (#:cffi
 	       #:cffi-libffi
@@ -14,9 +19,7 @@
 	       #:split-sequence
 	       #:cl-ppcre
 	       #:alexandria
-	       #:pileup
-	       ;;#:cl-sndfile
-	       )
+	       #:pileup)
   :components ((:file "package")
 	       (:file "library")
 	       (:file "cffi")
