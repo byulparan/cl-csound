@@ -30,8 +30,8 @@
 		 "channel value invalid. must be max-value(~a) >= init-value(~a) >=min-value(~a)"
 		 max-value init-value min-value)
     (setf name (ppcre:regex-replace-all "-" name "_"))
-    (csound-compile-orc
-     (get-csound)
+    (csound-performance-thread-compile-orc
+     (get-csound-performance-thread)  
      (format nil "gk~a init ~f~%gk~a chnexport ~s, ~d, ~d, ~a, ~f, ~f"
 	     name init-value name name
 	     (ecase direction (:input 1) (:output 2) (:io 3))
@@ -44,7 +44,7 @@
   (format nil "gk~a" (name arg)))
 
 (defmethod channel-value ((channel control-channel))
-  (csound-get-control-channel (get-csound) (name channel)))
+  (csound-get-control-channel (get-csound) (name channel) (cffi:null-pointer)))
 
 (defmethod (setf channel-value) ((value number) (channel control-channel))
   (with-slots (min-value max-value) channel
