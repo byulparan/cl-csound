@@ -125,5 +125,3 @@
 (defopcode zkw command (ksig kndx))
 (defopcode zkwm command (ksig kndx &optional imix))
 
-#+sbcl (eval-when (:compile-toplevel :load-toplevel :execute)
-	 (sb-ext:lock-package :cl))
