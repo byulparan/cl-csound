@@ -5,12 +5,6 @@
 
 (in-package #:csound)
 
-#-windows
-(pushnew "/usr/local/lib/" cffi:*foreign-library-directories*)
-
-#+windows
-(pushnew "c:/program files/csound6/bin/" cffi:*foreign-library-directories*)
-
 (cffi:define-foreign-library csoundlib
   (:darwin (:framework "CsoundLib64"))
   (:unix (:or "libcsound64.so"))
