@@ -142,7 +142,13 @@
 	   (when (get-csound)
 	     (quit-csound))))
   #+ccl (push #'cleanup-csound ccl::*lisp-cleanup-functions*)
-  #+sbcl (push #'cleanup-csound sb-ext:*exit-hooks*))
+  #+sbcl (push #'cleanup-csound sb-ext:*exit-hooks*)
+  #+ecl (push (lambda ()
+		(let* ((thead (bt:make-thread #'cleanup-csound)))
+		  (bt:join-thread thread)))
+	      si:*exit-hooks*)
+  #+lispworks (lispworks:define-action "When quitting image" "cleanup scsynth"
+		#'(lambda () (cleanup-csound) t)))
 
 
 
