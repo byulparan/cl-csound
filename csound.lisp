@@ -295,7 +295,7 @@
   "defined instruments. in this context, many core lisp functions are convert to other functions.
  examples)  + -> +~ , * -> *~ , let -> slet, let* -> slet*......
  If *debug-mode* is Nil, definst code is translate to csound orchestra expression, then compile by CsoundCompileOrc()."
-  (alexandria:with-gensyms (form insnum ins result)
+  (alexandria:with-gensyms (form insnum ins)
     `(let* ((,insnum (if (get-csound) ,(if (atom name) `(alexandria:if-let ((,ins (gethash ',name *csound-instr-table*))) ,ins
 							  (setf (gethash ',name *csound-instr-table*) (incf *csound-instr-count*)))
 					 `(setf (gethash ',(car name) *csound-instr-table*) ,(second name)))
@@ -311,8 +311,7 @@
 		  (format *streams* "~&endin")
 		  (get-output-stream-string *streams*))))
 	 (if (and (get-csound) (not *debug-mode*))
-	     (let* ((,result nil))
-	       ;; (csound-performance-thread-compile-orc (get-csound-performance-thread) ,form)
+	     (progn
 	       (when (not (zerop (csound-compile-orc (get-csound) ,form 0)))
 		 (error "Error Defintion Instrument \"~a\"" ',name))
 	       (pushnew ,insnum *csound-all-instrs*)
