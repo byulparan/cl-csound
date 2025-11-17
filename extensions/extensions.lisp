@@ -133,8 +133,10 @@
 	 (sym-count (alexandria:symbolicate "N"))
 	 (sym-tick (alexandria:symbolicate "TICK")))
     `(lambda (,sym-beat ,sym-count)
+       (declare (ignorable ,sym-count))
        (let* ((,sym-dur ,dur)
 	      (,sym-tick (beat-count)))
+	 (declare (ignorable ,sym-tick))
 	 ,@body
 	 ,sym-dur))))
 
