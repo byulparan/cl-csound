@@ -12,7 +12,9 @@
 (defpackage #:csound
   (:use #:cl)
   (:shadow #:array #:space)
-  (:export #:*debug-mode*
+  (:export #:myflt
+	   #:*myflt*
+	   #:*debug-mode*
 
  	   #:+csoundinit-no-signal-handler+
 	   #:+csoundinit-no-atexit+  
@@ -20,7 +22,7 @@
 	   #:+samples-out-of-range-message+
 	   #:+warning-messages+
 	   #:+benchmark-information+
-
+	   
 	   #:*run-hooks*
 	   #:*stop-hooks*
 	   
@@ -35,7 +37,7 @@
 	   #:clock-quant
 	   #:quant
 	   #:bpm
-
+	   
 	   #:fltfy
 	   #:definstr
 	   #:instr
