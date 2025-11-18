@@ -87,7 +87,7 @@
     (trivial-main-thread:call-in-main-thread 
      (lambda ()
        (float-features:with-float-traps-masked (:invalid :overflow :divide-by-zero)
-	 (csound-initialize +csoundinit-no-signal-handler+)
+	 #+sbcl (csound-initialize +csoundinit-no-signal-handler+)
 	 (setf csound (csound-create (cffi:null-pointer) (cffi:null-pointer)))
 	 (setf csound-performance-thread (csound-create-performance-thread csound))
 	 (csound-set-message-level csound message-level)
