@@ -28,29 +28,30 @@
 ;;;;;;;;;;;;;;
 
 (defmacro global (&body form)
-  (let ((opcode (gensym))
-	(build-form (gensym)))
-    `(let* ((*opcodes* nil)
-	    (*streams* (make-string-output-stream))
-	    (*default-ugen-rate* "a")
-	    (,opcode ,@form))
-       (when (typep ,opcode 'ugen)
-	 (with-slots (var) ,opcode
-	   (setf var (concatenate 'string "g" (if var var
-						(make-unique-name (rate ,opcode)))))))
-       (build ,opcode)
-       (let ((,build-form (get-output-stream-string *streams*)))
-	 (when (or *debug-mode* (not (get-csound)))
-	   (print (string-left-trim '(#\space) ,build-form)))
-       	 (when (get-csound)
-	   (csound-performance-thread-compile-orc (get-csound-performance-thread) ,build-form)
-	   (when (typep ,opcode 'ugen)
-	     (setf (gethash (intern (string-upcase (var ,opcode)) :keyword)
-			    *csound-global-variables*)
-		   ,build-form))))
-       ,opcode)))
-
-
+  (if (stringp (car form)) (let* ((*opcodes* nil)
+				  (name (car form)))
+			     (make-instance 'ugen :rate (aref name 1) :var name :name name))
+    (let ((opcode (gensym))
+	  (build-form (gensym)))
+      `(let* ((*opcodes* nil)
+	      (*streams* (make-string-output-stream))
+	      (*default-ugen-rate* "a")
+	      (,opcode ,@form))
+	 (when (typep ,opcode 'ugen)
+	   (with-slots (var) ,opcode
+	     (setf var (concatenate 'string "g" (if var var
+						  (make-unique-name (rate ,opcode)))))))
+	 (build ,opcode)
+	 (let ((,build-form (get-output-stream-string *streams*)))
+	   (when (or *debug-mode* (not (get-csound)))
+	     (print (string-left-trim '(#\space) ,build-form)))
+       	   (when (get-csound)
+	     (csound-performance-thread-compile-orc (get-csound-performance-thread) ,build-form)
+	     (when (typep ,opcode 'ugen)
+	       (setf (gethash (intern (string-upcase (var ,opcode)) :keyword)
+			      *csound-global-variables*)
+		 ,build-form))))
+	 ,opcode))))
 
 ;;;;;;;;;;;;;;
 ;;  assign  ;;
