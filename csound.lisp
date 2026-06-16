@@ -340,19 +340,21 @@
 
 
 
-(defmacro with-render ((output-file &key (sr 48000) (ksmps 64) (nchnls 2) (output "dac") pad (bpm (bpm))) &body body)
+(defmacro with-render ((output-file &key (sr 48000) (ksmps 64) (nchnls 2) (output "dac") software-bufsize hardware-bufsize pad (bpm (bpm)) includes) &body body)
   `(with-open-file (*render-stream* ,output-file
 				    :direction :output
 				    :if-exists :supersede)
      (format *render-stream* "<CsoundSynthesizer>~%")
      (format *render-stream* "<CsOptions>~%")
-     (format *render-stream* (format nil "-o~a~%" ,output))
+     (format *render-stream* (format nil "-o~a ~@[-b~a~] ~@[-B~a~] ~%" ,output ,software-bufsize ,hardware-bufsize))
      (format *render-stream* "</CsOptions>~%")
      (format *render-stream* "<CsInstruments>~%~%")
      (format *render-stream* "sr = ~d~%" ,sr)
      (format *render-stream* "ksmps = ~d~%" ,ksmps)
      (format *render-stream* "nchnls = ~d~%" ,nchnls)
      (format *render-stream* "0dbfs = 1~%~%~%")
+     (loop for file in ,includes
+	   do (format *render-stream* "~a" (alexandria:read-file-into-string file)))
      (dolist (var (alexandria:hash-table-values *csound-global-variables*))
        (format *render-stream* "~a~%" (string-left-trim '(#\space) var)))
      (terpri *render-stream*)
