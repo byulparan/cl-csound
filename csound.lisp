@@ -335,12 +335,12 @@
 	  (dotimes (i len)
 	    (setf (cffi:mem-aref p-field 'myflt (+ i 3)) (fltfy (nth i args))))
 	  (csound-performance-thread-score-event (get-csound-performance-thread) 1 (char-code #\i) (+ len 3) p-field))
-      (format *render-stream* "~&i~d  ~10,3f  ~10,3f~{  ~10,3f~}" (floor insnum) beat dur args))))
+	(format *render-stream* "~&i~d  ~10,3f  ~10,3f~{  ~10,3f~}" (floor insnum) beat dur (mapcar #'fltfy args)))))
 
 
 
 
-(defmacro with-render ((output-file &key (sr 48000) (ksmps 64) (nchnls 2) (output "dac") software-bufsize hardware-bufsize pad (bpm (bpm)) includes) &body body)
+(defmacro with-render ((output-file &key (sr 48000) (ksmps 64) (nchnls 2) (output "dac") software-bufsize hardware-bufsize (pad 60) (bpm (bpm)) includes) &body body)
   `(with-open-file (*render-stream* ,output-file
 				    :direction :output
 				    :if-exists :supersede)
@@ -375,7 +375,8 @@
      (terpri *render-stream*)
      (terpri *render-stream*)
      (format *render-stream* "</CsScore>~%")
-     (format *render-stream* "</CsoundSynthesizer>~%")))
+     (format *render-stream* "</CsoundSynthesizer>~%")
+     (format t "Render complete to ~a~%" ,output-file)))
 
 
 
