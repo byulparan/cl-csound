@@ -10,3 +10,8 @@ This is a Csound7 binding library for Common Lisp. It is not compatible with Cso
 ## Requirement
 - Csound7(https://github.com/csound/csound)
 
+
+## TODO
+1. More compatibility work.
+2. Documentation is needed. Until then, please refer to `example.lisp`.
+
