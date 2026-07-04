@@ -355,7 +355,8 @@
      (format *render-stream* "0dbfs = 1~%~%~%")
      (loop for file in ,includes
 	   do (format *render-stream* "~a" (alexandria:read-file-into-string file)))
-     (dolist (var (alexandria:hash-table-values *csound-global-variables*))
+     (dolist (var (sort (alexandria:hash-table-values *csound-global-variables*) #'<
+			:key (lambda (str) (read-from-string (elt (second (multiple-value-list (ppcre:scan-to-strings "g.+_(\\d+)" str))) 0)))))
        (format *render-stream* "~a~%" (string-left-trim '(#\space) var)))
      (terpri *render-stream*)
      (terpri *render-stream*)
