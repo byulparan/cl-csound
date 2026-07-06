@@ -15,7 +15,7 @@
   (:export #:myflt
 	   #:*myflt*
 	   #:*debug-mode*
-
+	   
  	   #:+csoundinit-no-signal-handler+
 	   #:+csoundinit-no-atexit+  
 	   #:+note-amplitude-messages+
@@ -28,6 +28,7 @@
 	   
 	   #:run-csound
 	   #:quit-csound
+	   #:*render-stream*
 	   #:with-render
 	   #:get-csound
 	   #:get-csound-performance-thread
