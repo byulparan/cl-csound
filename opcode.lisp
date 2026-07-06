@@ -16,12 +16,6 @@
 	  (get-unique-number)))
 
 
-(defgeneric ar (ugen))
-(defgeneric kr (ugen))
-(defgeneric ir (ugen))
-;;; (defgeneric fr (ugen))  ; <- is it need?
-
-
 
 ;;;;;;;;;;;;;;
 ;;  global  ;;
@@ -205,17 +199,18 @@
       (setf (rate opcode) (subseq var 0 1)))))
 
 
-(defmethod ar ((ugen ugen))
-  (setf (rate ugen) "a")
-  ugen)
+(defmacro ar (&body body)
+  `(let ((*default-ugen-rate* "a"))
+     ,@body))
 
-(defmethod kr ((ugen ugen))
-  (setf (rate ugen) "k")
-  ugen)
+(defmacro kr (&body body)
+  `(let ((*default-ugen-rate* "k"))
+     ,@body))
 
-(defmethod ir ((ugen ugen))
-  (setf (rate ugen) "i")
-  ugen)
+(defmacro ir (&body body)
+  `(let ((*default-ugen-rate* "i"))
+     ,@body))
+
 
 
 
