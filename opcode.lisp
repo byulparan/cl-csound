@@ -173,11 +173,10 @@
 ;;;;;;;;;;;;
 
 (defclass ugen (opcode)
-  ((rate :initarg :rate :initform *default-ugen-rate* :accessor rate)))
+  ((rate :initarg :rate :initform nil :accessor rate)))
 
 
 (defmethod get-form ((opcode ugen))
-  ;; (assert (rate opcode) nil "ambigous rate of ugen ~s. in actually Csound maybe allow it. but cl-csound require specifier accurately ugen's rate." (name opcode))
   (if (var opcode) (var opcode)
     (format nil "~a(~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~})"
 	    (format nil "~a~@[:~a~]" (name opcode) (rate opcode))
@@ -188,20 +187,12 @@
 
 (defmethod build ((opcode ugen))
   (when (var opcode)
-    (assert (rate opcode) nil "ambigous rate of ugen ~s. in actually Csound maybe allow it. but cl-csound require specifier accurately ugen's rate." (name opcode))
     (format *streams* "~&  ~{~a~^,~} = ~a( ~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~} )"
 	    (alexandria:ensure-list (var opcode))
-	    (format nil "~a" (name opcode))
+	    (format nil "~a~@[:~a~]" (name opcode) (rate opcode))
 	    (mapcar #'get-form (args opcode))
 	    (and (args opcode) (opt-args opcode))
 	    (mapcar #'get-form (opt-args opcode)))))
-
-
-;; let 폼 안에서 변수 이름에 바인딩 할때 ugen 이 rate 를 가지고 있지 않다면 var 의 첫글자를 해당 ugen 의 rate 로 설정
-(defmethod (setf var) :after (name (opcode ugen))
-  (unless (rate opcode)
-    (let* ((var (var opcode)))
-      (setf (rate opcode) (subseq var 0 1)))))
 
 
 
