@@ -75,6 +75,17 @@
   (if (< (random 1.0 state) n) if-true-val if-false-val))
 
 
+(defmacro seq (pattern)
+  `(let* ((next-beat (load-time-value (cons nil nil)))
+	  (get-value
+	   (lambda ()
+	     (unless (car next-beat)
+	       (setf (car next-beat) (ensure-cons ,pattern)))
+	     (let* ((tmp (caar next-beat)))
+	       (setf (car next-beat) (cdar next-beat))
+	       tmp))))
+     (funcall get-value)))
+
 
 (defvar *schedule-object* (make-hash-table))
 

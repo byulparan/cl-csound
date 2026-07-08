@@ -76,6 +76,7 @@
 	   #:beat-count
 	   #:latch
 	   #:coin
+	   #:seq
 	   #:schedule
 	   #:with-lambda
 	   
