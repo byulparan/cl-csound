@@ -353,8 +353,8 @@
      (format *render-stream* "ksmps = ~d~%" ,ksmps)
      (format *render-stream* "nchnls = ~d~%" ,nchnls)
      (format *render-stream* "0dbfs = 1~%~%~%")
-     (loop for file in ,includes
-	   do (format *render-stream* "~a" (alexandria:read-file-into-string file)))
+     (loop for string in ,includes
+	   do (format *render-stream* "~&~a~%" string))
      (dolist (var (sort (alexandria:hash-table-values *csound-global-variables*) #'<
 			:key (lambda (str) (read-from-string (elt (second (multiple-value-list (ppcre:scan-to-strings "g.+_(\\d+)" str))) 0)))))
        (format *render-stream* "~a~%" (string-left-trim '(#\space) var)))
