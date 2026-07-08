@@ -15,6 +15,11 @@
 	  (alexandria:make-gensym sig-rate)
 	  (get-unique-number)))
 
+(defgeneric ar (ugen))
+(defgeneric kr (ugen))
+(defgeneric ir (ugen))
+;;; (defgeneric fr (ugen))  ; <- is it need?
+
 
 
 ;;;;;;;;;;;;;;
@@ -172,10 +177,10 @@
 
 
 (defmethod get-form ((opcode ugen))
-  (assert (rate opcode) nil "ambigous rate of ugen ~s. in actually Csound maybe allow it. but cl-csound require specifier accurately ugen's rate." (name opcode))
+  ;; (assert (rate opcode) nil "ambigous rate of ugen ~s. in actually Csound maybe allow it. but cl-csound require specifier accurately ugen's rate." (name opcode))
   (if (var opcode) (var opcode)
     (format nil "~a(~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~})"
-	    (format nil "~a:~a" (name opcode) (rate opcode))
+	    (format nil "~a~@[:~a~]" (name opcode) (rate opcode))
 	    (mapcar #'get-form (args opcode))
  	    (and (args opcode) (opt-args opcode))
 	    (mapcar #'get-form (opt-args opcode)))))
@@ -199,17 +204,20 @@
       (setf (rate opcode) (subseq var 0 1)))))
 
 
-(defmacro ar (&body body)
-  `(let ((*default-ugen-rate* "a"))
-     ,@body))
 
-(defmacro kr (&body body)
-  `(let ((*default-ugen-rate* "k"))
-     ,@body))
+(defmethod ar ((ugen ugen))
+  (setf (rate ugen) "a")
+  ugen)
 
-(defmacro ir (&body body)
-  `(let ((*default-ugen-rate* "i"))
-     ,@body))
+
+(defmethod kr ((ugen ugen))
+  (setf (rate ugen) "k")
+  ugen)
+
+
+(defmethod ir ((ugen ugen))
+  (setf (rate ugen) "i")
+  ugen)
 
 
 
