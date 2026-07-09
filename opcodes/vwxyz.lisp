@@ -26,7 +26,7 @@
 (defopcode vcomb ugen (asig krvt xlpt imaxlpt &optional iskip insmps))
 (defopcode vcopy command (ifn1 ifn2 kelements &optional kdstoffset ksrcoffset kverbose))
 (defopcode vcopy-i command (ifn1 ifn2 ielements &optional idstoffset isrcoffset) "vcopy_i")
-(defopcode vdelasy ugen (asig adel imaxdel &optional iskip))
+(defopcode vdelay ugen (asig adel imaxdel &optional iskip))
 (defopcode vdelay3 ugen (asig adel imaxdel &optional iskip))
 (defopcode vdelayx ugen (ain adl imd iws &optional ist))
 (defopcode vdelayxq ugen (ain1 ain2 ain3 ain4 adl imd iws &optional ist))
