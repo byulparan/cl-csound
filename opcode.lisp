@@ -26,6 +26,8 @@
 ;;  global  ;;
 ;;;;;;;;;;;;;;
 
+(defvar *global* nil)
+
 (defmacro global (&body form)
   (if (stringp (car form)) (let* ((*opcodes* nil)
 				  (name (car form)))
@@ -33,8 +35,8 @@
     (let ((opcode (gensym))
 	  (build-form (gensym)))
       `(let* ((*opcodes* nil)
+	      (*global* t)
 	      (*streams* (make-string-output-stream))
-	      (*default-ugen-rate* "a")
 	      (,opcode ,@form))
 	 (when (typep ,opcode 'ugen)
 	   (with-slots (var) ,opcode
@@ -189,7 +191,7 @@
   (when (var opcode)
     (format *streams* "~&  ~{~a~^,~} = ~a( ~{~a~^, ~}~:[~;, ~]~{~@[~a~^, ~]~} )"
 	    (alexandria:ensure-list (var opcode))
-	    (format nil "~a~@[:~a~]" (name opcode) (rate opcode))
+	    (format nil "~a~@[:~a~]" (name opcode) (and (not *global*) (rate opcode)))
 	    (mapcar #'get-form (args opcode))
 	    (and (args opcode) (opt-args opcode))
 	    (mapcar #'get-form (opt-args opcode)))))
