@@ -405,7 +405,7 @@
   (flet ((kill-instr (name)
 	   (csound-performance-thread-compile-orc
 	    (get-csound-performance-thread)
-	    (format nil "turnoff2_i ~d, 0, 1" (floor (fltfy name))))))
+	    (format nil "turnoff2i ~d, 0, 1" (floor (fltfy name))))))
     (when (get-csound)
       (if instrs (loop for inst in instrs
 		       do (kill-instr inst))
