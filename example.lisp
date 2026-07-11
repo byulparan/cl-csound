@@ -28,7 +28,7 @@
 
 
 ;; `init' create a-rate variable defaulty.
-(defparameter *reverb-bus* (global (init 0)))
+(defparameter *reverb-bus* (global (ar (init 0))))
 
 ;; If you want to specify the rate explicitly, use the `ar' or `kr' functions.
 (defparameter *frequency* (global (kr (init (midicps 48)))))
