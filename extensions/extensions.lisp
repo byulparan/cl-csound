@@ -169,12 +169,12 @@
 	   (stop ',name))
 	 ,(when body
 	    `(let ((*pushed-orchestra-p* nil))
-	       (definst ,name ()
+	       (definstr ,name ()
 		 (let* ((asig ,body)
 			(kenv (linsegr 0 ,fade-time 1 ,fade-time 0))
 			(aout (* asig kenv)))
-			(outs aout aout)))
-	       (csnd (turnon ',name))))))))
+			(out aout aout)))
+	       (global (turnon ',name))))))))
 
 
 
