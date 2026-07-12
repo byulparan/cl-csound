@@ -83,7 +83,8 @@
 	   #:?
 	   #:load-sample
 	   #:proxy
-	   #:with-timout))
+	   #:with-timout
+	   #:full-pathname))
 
 
 (defpackage #:csound-user
